@@ -7,14 +7,14 @@
 ---------------------------------*/
 using UnityEngine.UI;
 using UnityEngine;
-using ZMUIFrameWork;
+using ZM.UI;
 
 public class ExampleWindow : WindowBase
 {
 
     public ExampleWindowDataComponent dataCompt;
 
-    #region 声明周期函数
+    #region 生命周期函数
     //调用机制与Mono Awake一致
     public override void OnAwake()
     {

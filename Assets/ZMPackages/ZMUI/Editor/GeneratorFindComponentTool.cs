@@ -47,9 +47,10 @@ public class GeneratorFindComponentTool : Editor
         //PresWindowNodeData(obj.transform,obj.name);
         //解析窗口组件数据
         if (UISetting.Instance.ParseType == ParseType.Tag)
-            ParseWindowDataByTag(obj.transform, obj.name);
+            AnalysisComponentDataTool.AnalysisWindowDataByTag(ref objDataList,obj.transform, obj.name);
         else
-            PresWindowNodeData(obj.transform, obj.name);
+            AnalysisComponentDataTool.AnalysisWindowNodeData(ref objDataList, obj.transform, obj.name);
+        
         //储存字段名称
         string datalistJson = JsonConvert.SerializeObject(objDataList);
         PlayerPrefs.SetString(GeneratorConfig.OBJDATALIST_KEY, datalistJson);
@@ -57,7 +58,7 @@ public class GeneratorFindComponentTool : Editor
         string csContnet= CreateCS(obj.name);
         Debug.Log("CsConent:\n"+csContnet);
         string cspath = UISetting.Instance.FindComponentGeneratorPath + "/"+obj.name+"UIComponent.cs";
-        UIWindowEditor.ShowWindow(csContnet,cspath);
+        ScriptDisplayWindow.ShowWindow(csContnet,cspath);
     }
     /// <summary>
     /// 解析窗口节点数据
@@ -234,5 +235,5 @@ public class EditorObjectData
     public int insID;
     public string fieldName;
     public string fieldType;
-   
+    public List<EditorObjectData> dataList;
 }

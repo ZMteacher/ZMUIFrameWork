@@ -18,5 +18,10 @@ MonoBehaviour:
   BindComponentGeneratorPath: Assets/Scripts/AutoGenerate/BindCompoent
   FindComponentGeneratorPath: Assets/Scripts/AutoGenerate/FindCompoent
   WindowGeneratorPath: Assets/Scripts/AutoGenerate/Window
+  ItemScriptsGeneratorPath: Assets/Scripts/AutoGenerate/Item
   WindowPrefabFolderPathArr:
   - Assets/ZMPackages/ZMUI/Example/Resources
+  UsingNameSpaceArr:
+  - UnityEngine
+  - UnityEngine.UI
+  - TMPro

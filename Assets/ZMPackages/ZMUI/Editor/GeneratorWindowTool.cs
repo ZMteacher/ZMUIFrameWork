@@ -46,7 +46,7 @@ public class GeneratorWindowTool : Editor
 
         Debug.Log("CsConent:\n" + csContnet);
         string cspath = UISetting.Instance.WindowGeneratorPath + "/" + obj.name + ".cs";
-        UIWindowEditor.ShowWindow(csContnet, cspath, methodDic);
+        ScriptDisplayWindow.ShowWindow(csContnet, cspath, methodDic);
     }
     /// <summary>
     /// 生成Window脚本
@@ -71,7 +71,6 @@ public class GeneratorWindowTool : Editor
         sb.AppendLine("---------------------------------*/");
         sb.AppendLine("using UnityEngine.UI;");
         sb.AppendLine("using UnityEngine;");
-        sb.AppendLine("using ZMUIFrameWork;");
         sb.AppendLine();
 
         //生成类命
@@ -90,7 +89,7 @@ public class GeneratorWindowTool : Editor
         }
 
 
-        //生成声明周期函数 Awake
+        //生成生命周期函数 Awake
         sb.AppendLine("\t");
         sb.AppendLine($"\t\t #region 生命周期函数");
         sb.AppendLine($"\t\t //调用机制与Mono Awake一致");

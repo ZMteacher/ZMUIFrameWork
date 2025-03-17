@@ -16,7 +16,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class SyStemUiEditor : Editor
+public class SystemUIEditor : Editor
 {
     [InitializeOnLoadMethod]
     private static void InitEditor()

@@ -78,9 +78,20 @@ public class UISetting : ScriptableObject
 #endif
     public string WindowGeneratorPath ="";
 #if ODIN_INSPECTOR
+    [TitleGroup("脚本自动化生成路径配置", "自定义生成路径"), LabelText("item脚本生成路径"), FolderPath]
+#endif
+    public string ItemScriptsGeneratorPath ="";
+#if ODIN_INSPECTOR
     [TitleGroup("窗口预制体加载路径配置","框架根据以下路径自动计算加载路径，新增窗口无需手动配置"), LabelText("窗口预制体存放路径"), FolderPath]
 #endif
     public string[] WindowPrefabFolderPathArr;
+    
+#if ODIN_INSPECTOR
+    [TitleGroup("自动生成脚本命名空间引入配置","框架根据以下命名空间在生成脚本时自动Using"), LabelText("命名空间配置"), FolderPath]
+#endif
+    public string[] UsingNameSpaceArr;
+    
+    
 #if ODIN_INSPECTOR
     private bool mShowFindComponentGeneratorPath;
     public void OnBindEnumChang(GeneratorType type)
