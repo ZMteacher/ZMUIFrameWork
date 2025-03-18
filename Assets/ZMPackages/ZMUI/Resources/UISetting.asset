@@ -15,13 +15,13 @@ MonoBehaviour:
   SINGMASK_SYSTEM: 1
   ParseType: 0
   GeneratorType: 1
-  BindComponentGeneratorPath: Assets/Scripts/AutoGenerate/BindCompoent
+  BindComponentGeneratorPath: Assets/ZMPackages/ZMUI/Example/Scripts/AutoGenerate/BindCompoent
   FindComponentGeneratorPath: Assets/Scripts/AutoGenerate/FindCompoent
-  WindowGeneratorPath: Assets/Scripts/AutoGenerate/Window
-  ItemScriptsGeneratorPath: Assets/Scripts/AutoGenerate/Item
+  WindowGeneratorPath: Assets/ZMPackages/ZMUI/Example/Scripts/AutoGenerate/Window
+  ItemScriptsGeneratorPath: Assets/ZMPackages/ZMUI/Example/Scripts/AutoGenerate/Item
   WindowPrefabFolderPathArr:
   - Assets/ZMPackages/ZMUI/Example/Resources
+  - Assets/ZMPackages/ZMUI/Resources
   UsingNameSpaceArr:
   - UnityEngine
   - UnityEngine.UI
-  - TMPro

@@ -130,7 +130,7 @@ public class GeneratorFindComponentTool : Editor
     public static string CreateCS(string name)
     {
         StringBuilder sb = new StringBuilder();
-        string nameSpaceName = "ZMUIFrameWork";
+        string nameSpaceName = "ZM.UI";
         //添加引用
         sb.AppendLine("/*---------------------------------");
         sb.AppendLine(" *Title:UI自动化组件查找代码生成工具");

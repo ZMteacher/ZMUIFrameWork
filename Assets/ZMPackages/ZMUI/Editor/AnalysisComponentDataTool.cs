@@ -49,7 +49,6 @@ public class AnalysisComponentDataTool
                         GameObject listObjItme = obj.transform.GetChild(j).gameObject;
                         objectData.dataList.Add(new EditorObjectData { fieldName = listObjItme.name.Replace("#",""),  insID = listObjItme.GetInstanceID()});
                     }
-                    return;
                 }
             }
             AnalysisWindowNodeData(ref objDataList,trans.GetChild(i), WinName);

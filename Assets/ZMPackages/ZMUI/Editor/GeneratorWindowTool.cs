@@ -60,7 +60,7 @@ public class GeneratorWindowTool : Editor
         List<EditorObjectData> objDatalist = JsonConvert.DeserializeObject<List<EditorObjectData>>(datalistJson);
         methodDic.Clear();
         StringBuilder sb = new StringBuilder();
-
+        string nameSpaceName = "ZM.UI";
         //添加引用
         sb.AppendLine("/*---------------------------------");
         sb.AppendLine(" *Title:UI表现层脚本自动化生成工具");
@@ -72,7 +72,12 @@ public class GeneratorWindowTool : Editor
         sb.AppendLine("using UnityEngine.UI;");
         sb.AppendLine("using UnityEngine;");
         sb.AppendLine();
-
+        //生成命名空间
+        if (!string.IsNullOrEmpty(nameSpaceName))
+        {
+            sb.AppendLine($"namespace {nameSpaceName}");
+            sb.AppendLine("{");
+        }
         //生成类命
         sb.AppendLine($"\tpublic class {name}:WindowBase");
         sb.AppendLine("\t{");
@@ -160,6 +165,10 @@ public class GeneratorWindowTool : Editor
         sb.AppendLine($"\t\t #endregion");
 
         sb.AppendLine("\t}");
+        if (!string.IsNullOrEmpty(nameSpaceName))
+        {
+            sb.AppendLine("}");
+        }
         return sb.ToString();
     }
     /// <summary>

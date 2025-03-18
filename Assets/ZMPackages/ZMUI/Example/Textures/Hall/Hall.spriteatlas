@@ -1,0 +1,92 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!687078895 &4343727234628468602
+SpriteAtlas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Hall
+  serializedVersion: 2
+  m_EditorData:
+    serializedVersion: 2
+    textureSettings:
+      serializedVersion: 2
+      anisoLevel: 1
+      compressionQuality: 50
+      maxTextureSize: 2048
+      textureCompression: 0
+      filterMode: 1
+      generateMipMaps: 0
+      readable: 0
+      crunchedCompression: 0
+      sRGB: 1
+    platformSettings: []
+    packingSettings:
+      serializedVersion: 2
+      padding: 4
+      blockOffset: 1
+      allowAlphaSplitting: 0
+      enableRotation: 0
+      enableTightPacking: 0
+      enableAlphaDilation: 0
+    secondaryTextureSettings: {}
+    variantMultiplier: 1
+    packables:
+    - {fileID: 102900000, guid: 5da6d7fbb029b4247a76cd865ced60a0, type: 3}
+    bindAsDefault: 1
+    isAtlasV2: 0
+    cachedData: {fileID: 0}
+  m_MasterAtlas: {fileID: 0}
+  m_PackedSprites:
+  - {fileID: 21300000, guid: c7639ae04bdb38d4c92af41afecf2aa2, type: 3}
+  - {fileID: 21300000, guid: 14972df00154f24499a837e5048d37cd, type: 3}
+  - {fileID: 21300000, guid: 734b062153ada664f94c0548d32fc893, type: 3}
+  - {fileID: 21300000, guid: 1dfd685153b3b4940baeb3a1b847b3ec, type: 3}
+  - {fileID: 21300000, guid: 96e406b1c34d3fd4f832bfc5fa6232bd, type: 3}
+  - {fileID: 21300000, guid: e9a660d1f0c6fd54982e359336a619ae, type: 3}
+  - {fileID: 21300000, guid: a7238f02d9ba33c449ce7087956e7847, type: 3}
+  - {fileID: 21300000, guid: 8d266743f3bfd6f46b983e7009546f3a, type: 3}
+  - {fileID: 21300000, guid: 06059254033d8494cadd9b891d1d489e, type: 3}
+  - {fileID: 21300000, guid: b5fb5eb42c900bd42acbc529e436f016, type: 3}
+  - {fileID: 21300000, guid: f8708bd4932f96944995b89714145be2, type: 3}
+  - {fileID: 21300000, guid: a1a9c375a4d33314c8ceecd31cc4a09f, type: 3}
+  - {fileID: 21300000, guid: c71698c56f6001c43beaae1cf8989a41, type: 3}
+  - {fileID: 21300000, guid: 213b36d543d17f44ca87ede11adcb4aa, type: 3}
+  - {fileID: 21300000, guid: 0ad83217e52432442954a1fced89451d, type: 3}
+  - {fileID: 21300000, guid: 47714ae86e2df374b8eb3d2b0b08548c, type: 3}
+  - {fileID: 21300000, guid: fc8afb4a4ef8ccc4cb27e68ea2c56e27, type: 3}
+  - {fileID: 21300000, guid: 1f7535ca80d1e814390940eec9c63353, type: 3}
+  - {fileID: 21300000, guid: 07b4142c913b10e4693e98ec673a4c00, type: 3}
+  - {fileID: 21300000, guid: cb3ae47c47af7744cb7d1dc6ac7f5a8f, type: 3}
+  - {fileID: 21300000, guid: e7e81bec280ea234d9f6dac59d0be97c, type: 3}
+  - {fileID: 21300000, guid: 0da23abd67e1bac4aa64643ac52b39ea, type: 3}
+  - {fileID: 21300000, guid: 7c5f3dbdae4461a489c3d2c57d0b1b06, type: 3}
+  m_PackedSpriteNamesToIndex:
+  - textBg
+  - "\u56FE\u5C42 2 \u62F7\u8D1D"
+  - box
+  - yanfashi
+  - "\u7EC4 3 \u62F7\u8D1D"
+  - "\u56FE\u5C42 2"
+  - xingli
+  - add2
+  - huanjing
+  - 1
+  - "\u56FE\u5C42 1"
+  - HeadInfo
+  - J1
+  - setting
+  - gold
+  - gonghui
+  - buji
+  - addCurrency
+  - mail
+  - 19
+  - add3
+  - shadow
+  - role
+  m_RenderDataMap: {}
+  m_Tag: Hall
+  m_IsVariant: 0
+  m_IsPlaceholder: 0
