@@ -25,3 +25,4 @@ MonoBehaviour:
   UsingNameSpaceArr:
   - UnityEngine
   - UnityEngine.UI
+  - SuperScrollView

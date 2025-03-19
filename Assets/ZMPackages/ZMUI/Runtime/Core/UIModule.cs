@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using ZM.UI;
 
 public class UIModule
 {
@@ -81,6 +82,7 @@ public class UIModule
         mUICamera = GameObject.Find("UICamera").GetComponent<Camera>();
         mUIRoot = GameObject.Find("UIRoot").transform;
         mWindowConfig = Resources.Load<WindowConfig>("WindowConfig");
+        AdaptationBangs.InitializeAdaptation();
         //在手机上不会触发调用
 #if UNITY_EDITOR
         mWindowConfig.GeneratorWindowConfig();
