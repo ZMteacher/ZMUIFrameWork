@@ -45,7 +45,7 @@ namespace ZM.UI
         public override void OnHide()
         {
             base.OnHide();
-            dataCompt.TaskZMUIItemListView.OnRelease();
+            dataCompt.taskZmuiListView.OnRelease();
         }
 
         //物体销毁时执行
@@ -62,7 +62,7 @@ namespace ZM.UI
         /// </summary>
         private void RefreshViewList()
         {
-            dataCompt.TaskZMUIItemListView.RefreshListView(true,m_TaskDataList.Count,OnGetListDataCallBack);
+            dataCompt.taskZmuiListView.RefreshListView(true,m_TaskDataList.Count,OnGetListDataCallBack);
         }
         /// <summary>
         /// 根据item索引获取无限滚动数据

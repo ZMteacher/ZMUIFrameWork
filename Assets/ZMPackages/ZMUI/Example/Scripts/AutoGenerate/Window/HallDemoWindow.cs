@@ -77,6 +77,7 @@ namespace ZM.UI
 
         public void OnEphemerisButtonClick()
         {
+            PopUpWindow<RoleDemoWindow>();
         }
 
         public void OnDreamlandButtonClick()

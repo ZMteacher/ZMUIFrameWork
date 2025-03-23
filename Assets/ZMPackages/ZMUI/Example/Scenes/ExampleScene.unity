@@ -335,18 +335,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 69e9525848aaa9b4190a0ba7414f64c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  CloseButton: {fileID: 0}
-  LogoImage: {fileID: 0}
-  HeadInfoButton: {fileID: 0}
-  NoticeButton: {fileID: 0}
-  TopRightCurrencyItemArray: []
-  PlotButton: {fileID: 0}
-  EphemerisButton: {fileID: 0}
-  DreamlandButton: {fileID: 0}
-  LaboratoryButton: {fileID: 0}
-  SupplyButton: {fileID: 0}
-  LaborUnionButton: {fileID: 0}
-  ManageButton: {fileID: 0}
 --- !u!1 &1746132736
 GameObject:
   m_ObjectHideFlags: 0
