@@ -72,6 +72,7 @@ namespace ZM.UI
 
         public void OnPlotButtonClick()
         {
+            PopUpWindow<TaskDemoWindow>();
         }
 
         public void OnEphemerisButtonClick()

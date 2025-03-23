@@ -64,16 +64,16 @@ SpriteAtlas:
   - {fileID: 21300000, guid: 7c5f3dbdae4461a489c3d2c57d0b1b06, type: 3}
   m_PackedSpriteNamesToIndex:
   - textBg
-  - "\u56FE\u5C42 2 \u62F7\u8D1D"
+  - chat
   - box
   - yanfashi
-  - "\u7EC4 3 \u62F7\u8D1D"
-  - "\u56FE\u5C42 2"
+  - group3
+  - main
   - xingli
   - add2
   - huanjing
   - 1
-  - "\u56FE\u5C42 1"
+  - owner
   - HeadInfo
   - J1
   - setting
