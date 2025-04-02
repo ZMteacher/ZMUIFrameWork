@@ -3,5 +3,5 @@
   "version": "1.0.0",
   "displayName": "ZMUI",
   "description": "Package description",
-  "unity": "2019.1" // 最低支持的Unity版本
+  "unity": "2019.1"
 }
