@@ -14,12 +14,15 @@
 ----------------------------------------------------------------------------*/
 using System.Collections.Generic;
 using System.IO;
+using UnityEditor;
 using UnityEngine;
 [CreateAssetMenu(fileName = "WindowConfig", menuName = "WindowConfig", order = 0)]
 public class WindowConfig : ScriptableObject
 {
     public List<WindowData> windowDataList = new List<WindowData>();
-
+    /// <summary>
+    /// 生成窗口预制体加载路径
+    /// </summary>
     public void GeneratorWindowConfig()
     {
         string[] windowRootArr = UISetting.Instance.WindowPrefabFolderPathArr;
@@ -69,7 +72,34 @@ public class WindowConfig : ScriptableObject
                 windowDataList.Add(data);
             }
         }
+#if UNITY_EDITOR
+        EditorUtility.SetDirty(this);
+        AssetDatabase.SaveAssetIfDirty(this);
+#endif
     }
+
+    /// <summary>
+    /// 添加窗口元数据 (在多模块资源+独立代码热更程序集时使用) 主要作用是添加热更窗口数据至AOT或热更程序集内
+    /// </summary>
+    public void AddAOTWindowMetadata(WindowConfig windowConfig)
+    {
+        foreach (var item in windowConfig.windowDataList)
+        {
+            if (GetWindowData(item.name, false)==null)
+            {
+                windowDataList.Add(item);
+                Debug.Log("补充窗口元数据:"+item.name);
+            }
+        }
+    }
+    
+
+    /// <summary>
+    /// 获取窗口数据
+    /// </summary>
+    /// <param name="wndName">窗口名称</param>
+    /// <param name="log">是否打印窗口不存在日志.</param>
+    /// <returns></returns>
     public WindowData GetWindowData(string wndName,bool log=true)
     {
         foreach (var item in windowDataList)
@@ -79,7 +109,8 @@ public class WindowConfig : ScriptableObject
                 return item;
             }
         }
-        Debug.LogError(wndName+"不存在在配置文件中，请检查预制体存放位置，或配置文件");
+        if (log)
+            Debug.LogError(wndName+"不存在在配置文件中，请检查预制体存放位置，或配置文件");
         return null;
     }
 }

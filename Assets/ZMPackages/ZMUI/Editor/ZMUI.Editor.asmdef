@@ -1,13 +1,13 @@
 {
-    "name": "ZM.UI",
+    "name": "ZMUI.Editor",
     "rootNamespace": "",
     "references": [
-        "GUID:3f7be2e305220e64496f5ab9f53e1bdd",
-        "GUID:988174221d4b79d428483d9695d8941e",
-        "GUID:5403ce132d923e54b9101bea279ab174",
+        "GUID:3a417a6192b5ecb44afe222fb3c9a681",
         "GUID:c1b89f0da4438b4488ee01a2e116876d"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

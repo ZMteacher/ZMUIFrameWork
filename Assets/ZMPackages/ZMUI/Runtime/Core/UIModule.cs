@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using ZM.UI;
+using Object = UnityEngine.Object;
 
 public class UIModule
 {
@@ -80,14 +81,25 @@ public class UIModule
     public void Initialize()
     {
         mUICamera = GameObject.Find("UICamera").GetComponent<Camera>();
-        mUIRoot = GameObject.Find("UIRoot").transform;
+        mUIRoot = GameObject.Find("UIRoot").transform; 
         mWindowConfig = Resources.Load<WindowConfig>("WindowConfig");
+        // mWindowConfig = ZMAsset.LoadScriptableObject<WindowConfig>(AssetsPathConfig.HALL_DATA_PATH+"WindowConfig.asset");
         AdaptationBangs.InitializeAdaptation();
         //在手机上不会触发调用
 #if UNITY_EDITOR
         mWindowConfig.GeneratorWindowConfig();
 #endif
     }
+
+    /// <summary>
+    /// 添加窗口元数据 (在HyBridCLR多模块资源+独立代码热更程序集时使用) 主要作用是添加热更窗口数据至AOT或热更程序集内
+    /// </summary>
+    /// <param name="config"></param>
+    public void AddAOTWindowMetadata(WindowConfig config)
+    {
+        mWindowConfig.AddAOTWindowMetadata(config);
+    }
+
     #endregion
 
     #region 窗口管理
@@ -132,6 +144,7 @@ public class UIModule
     {
         System.Type type = typeof(T);
         string wndName = type.Name;
+        Debug.Log($"PopUpWindow:{wndName}");
         WindowBase wnd = GetWindow(wndName);
         if (wnd != null)
         {
@@ -139,6 +152,7 @@ public class UIModule
         }
 
         T t = new T();
+        Debug.Log($"PopUpWindow new T:{t}");
         return InitializeWindow(t, wndName) as T;
     }
     private WindowBase PopUpWindow(WindowBase window)
@@ -299,7 +313,8 @@ public class UIModule
             }
             window.SetVisible(false);
             SetWidnowMaskVisible();
-            window.OnHide();
+            if (window.Visible)
+                window.OnHide();
             window.OnDestroy();
             GameObjectDestoryWindow(window.gameObject);
             //在出栈的情况下，上一个界面销毁时，自动打开栈种的下一个界面
@@ -323,6 +338,11 @@ public class UIModule
 
     private void SetWidnowMaskVisible()
     {
+        if (UISetting.Instance==null)
+        {
+            Debug.LogError("UISetting.Instance is null");
+            return;
+        }
         if (!UISetting.Instance.SINGMASK_SYSTEM)
         {
             return;
@@ -390,16 +410,17 @@ public class UIModule
     /// <param name="windowObj"></param>
     public void GameObjectDestoryWindow(GameObject windowObj)
     {
-        GameObject.Destroy(windowObj);
+         GameObject.Destroy(windowObj);
         //可在这里中替换自己的资源框架的释放接口
-        //ZMAsset.Release(windowObj);
+        // ZMAsset.Release(windowObj);
     }
     //*** Resouces 加载接口，可在下面接口中修改为自己的资源框架加载和释放接口  ***
-    public GameObject ResourcesLoadObj(string path,Transform parent)
+    public GameObject ResourcesLoadObj(string wndName,Transform parent)
     {
-        return GameObject.Instantiate<GameObject>(Resources.Load<GameObject>(path), parent);
+        return GameObject.Instantiate<GameObject>(Resources.Load<GameObject>(wndName), parent);
         //在这里替换成自己的资源加载框架 例:
-        //GameObject window = ZMAsset.Instantiate(mWindowConfig.GetWindowData(wndName).path, mUIRoot);
+        Debug.Log("LaodWindow:"+mWindowConfig.GetWindowData(wndName).path);
+        // return ZMAsset.InstantiateObject(mWindowConfig.GetWindowData(wndName).path, mUIRoot);
     }
     #endregion
 
@@ -542,6 +563,25 @@ public class UIModule
     {
         mWindowStack.Clear();
     }
+    #endregion
+
+    #region 自定义Resources过度Loading
+
+    private GameObject mGameLoadingWin;
+    public void PopUpLoadingWindow()
+    {
+        if (mGameLoadingWin==null)
+        {
+            mGameLoadingWin = Object.Instantiate(Resources.Load("GameLoadingWindow")as GameObject);
+        }
+    }
+
+    public void HideLoadingWindow()
+    {
+        if(mGameLoadingWin!=null)
+                                                        Object.Destroy(mGameLoadingWin);
+    }
+
     #endregion
 }
 

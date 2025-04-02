@@ -13,5 +13,17 @@ MonoBehaviour:
   m_Name: WindowConfig
   m_EditorClassIdentifier: 
   windowDataList:
-  - name: ExampleWindow
-    path: Assets/ZMPackages/ZMUIFrameWork/Example/Resources/ExampleWindow
+  - name: HallDemoWindow
+    path: Assets/ZMPackages/ZMUI/Example/Resources/HallDemoWindow
+  - name: RoleDemoWindow
+    path: Assets/ZMPackages/ZMUI/Example/Resources/RoleDemoWindow
+  - name: StartDemoWindow
+    path: Assets/ZMPackages/ZMUI/Example/Resources/StartDemoWindow
+  - name: TaskDemoWindow
+    path: Assets/ZMPackages/ZMUI/Example/Resources/TaskDemoWindow
+  - name: SelectWindow
+    path: Assets/ZMPackages/ZMUI/Resources/SelectWindow
+  - name: Toast
+    path: Assets/ZMPackages/ZMUI/Resources/Toast
+  - name: TempWindow
+    path: Assets/ZMPackages/ZMUI/Resources/TempWindow
