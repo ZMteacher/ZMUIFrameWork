@@ -1,7 +1,9 @@
 fileFormatVersion: 2
-guid: 3fdc67fad3e362e47b5dd365a0bbdd7f
-TextScriptImporter:
+guid: 2ad0a53eacb91bd4fbe0dc668bf25e6f
+ShaderImporter:
   externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
   userData: 
   assetBundleName: 
   assetBundleVariant: 
@@ -10,6 +12,5 @@ AssetOrigin:
   productId: 89041
   packageName: Odin Inspector and Serializer
   packageVersion: 3.3.1.11
-  assetPath: Assets/ZMPackages/Library/Sirenix/Odin Inspector/Assets/Editor/Bootstrap
-    License.txt
+  assetPath: Assets/ZMPackages/Library/Sirenix/Odin Inspector/Assets/Editor/Hidden/LazyEditorIconShader.shader
   uploadId: 712389
