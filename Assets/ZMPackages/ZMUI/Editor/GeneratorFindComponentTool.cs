@@ -44,13 +44,8 @@ public class GeneratorFindComponentTool : Editor
             Directory.CreateDirectory(UISetting.Instance.FindComponentGeneratorPath);
         }
         ////解析窗口组件数据
-        //PresWindowNodeData(obj.transform,obj.name);
-        //解析窗口组件数据
-        if (UISetting.Instance.ParseType == ParseType.Tag)
-            AnalysisComponentDataTool.AnalysisWindowDataByTag(ref objDataList,obj.transform, obj.name);
-        else
-            AnalysisComponentDataTool.AnalysisWindowNodeData(ref objDataList, obj.transform, obj.name);
-        
+        PresWindowNodeData(obj.transform,obj.name);
+       
         //储存字段名称
         string datalistJson = JsonConvert.SerializeObject(objDataList);
         PlayerPrefs.SetString(GeneratorConfig.OBJDATALIST_KEY, datalistJson);
