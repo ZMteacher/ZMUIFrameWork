@@ -52,9 +52,9 @@ public class UIModule
     /// </summary>
     private List<WindowBase> mVisibleWindowList = new List<WindowBase>();
     /// <summary>
-    /// 队列， 用来管理弹窗的循环弹出
+    /// 模拟弹出栈，用来管理弹窗的循环弹出
     /// </summary>
-    private Queue<WindowBase> mWindowStack = new Queue<WindowBase>();
+    private List<WindowBase> mWindowStack = new List<WindowBase>(); //列表栈  可在循环弹出时使用
     /// <summary>
     /// 开始弹出堆栈的标记，可以用来处理多种情况，比如：正在出栈种有其他界面弹出，可以直接放到栈内进行弹出 等
     /// </summary>
@@ -494,18 +494,6 @@ public class UIModule
     #endregion
 
     #region 堆栈系统
-
-    /// <summary>
-    /// 进栈一个界面
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="popCallBack"></param>
-    public void PushWindowToStack<T>(Action<WindowBase> popCallBack = null) where T : WindowBase, new()
-    {
-        T wndBase = new T();
-        wndBase.PopStackListener = popCallBack;
-        mWindowStack.Enqueue(wndBase);
-    }
     /// <summary>
     /// 弹出堆栈中第一个弹窗
     /// </summary>
@@ -516,13 +504,55 @@ public class UIModule
         PopStackWindow();
     }
     /// <summary>
+    /// 进栈一个界面
+    /// </summary>
+    /// <param name="popCallBack">压栈弹窗弹出回调</param>
+    /// <param name="single">是否只允许存在一个</param>
+    /// <param name="pushToStackTop">是否压到栈顶(优先弹出)</param>
+    /// <typeparam name="T">准备压栈的弹窗</typeparam>
+    public void PushWindowToStack<T>(Action<WindowBase> popCallBack = null, bool single = false, bool pushToStackTop = false) where T : WindowBase, new()
+    {
+        string winName = typeof(T).Name;
+        if (single)
+        {
+            //压栈去重
+            foreach (var item in mWindowStack)
+            {
+                if (item.Name.Equals(winName)) return; 
+            }
+            
+            //压栈去显
+            WindowBase win = GetWindow<T>();
+            if (win != null)
+            {
+                Debug.Log($"{winName} 弹窗已显示，single模式不处理压栈");
+                win.OnShow();
+                return;
+            }
+        }
+        
+        Debug.Log($"Stack Window Push :{winName}" );
+        
+        T wndBase = new T { PopStackListener = popCallBack, Name = winName };
+        
+        if (pushToStackTop )
+        {
+            mWindowStack.Insert(0, wndBase);
+            return;
+        }
+        mWindowStack.Add(wndBase);
+    }
+    
+    /// <summary>
     /// 压入并且弹出堆栈弹窗，若已弹出则只压入
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="popCallBack"></param>
-    public void PushAndPopStackWindow<T>(Action<WindowBase> popCallBack = null) where T : WindowBase, new()
+    /// <typeparam name="T">准备压栈的弹窗</typeparam>
+    /// <param name="popCallBack">压栈弹窗弹出回调</param>
+    /// <param name="single">是否只允许存在一个</param>
+    /// <param name="pushToStackTop">是否压到栈顶(优先弹出)</param>
+    public void PushAndPopStackWindow<T>(Action<WindowBase> popCallBack = null,bool single = false, bool pushToStackTop = false) where T : WindowBase, new()
     {
-        PushWindowToStack<T>(popCallBack);
+        PushWindowToStack<T>(popCallBack,single,pushToStackTop);
         StartPopFirstStackWindow();
     }
     /// <summary>
@@ -545,7 +575,8 @@ public class UIModule
     {
         if (mWindowStack.Count > 0)
         {
-            WindowBase window = mWindowStack.Dequeue();
+            WindowBase window = mWindowStack[0];
+            mWindowStack.RemoveAt(0);
             WindowBase popWindow = PopUpWindow(window);
             popWindow.PopStackListener = window.PopStackListener;
             popWindow.PopStack = true;
