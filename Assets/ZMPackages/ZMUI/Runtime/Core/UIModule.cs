@@ -311,10 +311,11 @@ public class UIModule
                 mAllWindowList.Remove(window);
                 mVisibleWindowList.Remove(window);
             }
-            window.SetVisible(false);
-            SetWidnowMaskVisible();
             if (window.Visible)
                 window.OnHide();
+            window.SetVisible(false);
+            SetWidnowMaskVisible();
+            
             window.OnDestroy();
             GameObjectDestoryWindow(window.gameObject);
             //在出栈的情况下，上一个界面销毁时，自动打开栈种的下一个界面
@@ -389,6 +390,22 @@ public class UIModule
 
     #endregion
 
+    #region 渲染帧更新接口(为节省性能不默认开启，需要在外部调用)
+
+    public void OnUpdate()
+    {
+        for (int i = 0; i < mVisibleWindowList.Count; i++)
+        {
+            WindowBase win = mVisibleWindowList[i];
+            if (win.Update)
+            {
+                win.OnUpdate();
+            }
+        }
+    }
+
+    #endregion
+    
     #region ****** Resouces 加载接口，可在下面接口中修改为自己的资源框架加载和释放接口 ******
     /// <summary>
     /// 加载弹窗(可在这个接口中替换自己的资源框架的加载对象接口)
@@ -609,8 +626,8 @@ public class UIModule
 
     public void HideLoadingWindow()
     {
-        if(mGameLoadingWin!=null)
-                                                        Object.Destroy(mGameLoadingWin);
+        if(mGameLoadingWin!=null) 
+            Object.Destroy(mGameLoadingWin);
     }
 
     #endregion

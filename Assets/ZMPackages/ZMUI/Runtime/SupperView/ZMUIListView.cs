@@ -55,12 +55,12 @@ namespace  ZM.UI
                 if (reSetPos)
                 {
                     loopListView.MovePanelToItemIndex(0,0);
+                    loopListView.RefreshAllShownItem();
                 }
                 else
                 {
                     loopListView.RefreshAllShownItem();
                 }
-                
             }
         }
         /// <summary>
@@ -100,9 +100,10 @@ namespace  ZM.UI
 
         public void OnRelease()
         {
-            foreach (var item in loopListView.ItemList)
+            var itemScriptArr = loopListView.ContainerTrans.GetComponentsInChildren<IZMUIViewListItem>(true);
+            foreach (var item in itemScriptArr)
             {
-                item.GetComponent<IZMUIViewListItem>().OnRelease();
+                item.OnRelease();
             }
         }
     }
