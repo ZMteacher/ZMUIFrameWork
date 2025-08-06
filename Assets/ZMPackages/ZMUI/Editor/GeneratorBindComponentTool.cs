@@ -197,7 +197,10 @@ public class GeneratorBindComponentTool : Editor
                         }
                         else
                         {
-                            item.SetValue(compt, uiObject.GetComponent(objData.fieldType));
+                            object obj =objData.fieldType.Equals("TextMeshPro")
+                                ? uiObject.GetComponent("ZM.UGUIPro." + objData.fieldType)
+                                : uiObject.GetComponent(objData.fieldType);
+                            item.SetValue(compt, obj);
                         }
                     }
                     else
