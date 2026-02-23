@@ -18,7 +18,7 @@ using UnityEditor;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using Unity.Plastic.Antlr3.Runtime.Misc;
+
 
 public class ScriptDisplayWindow : EditorWindow
 {
