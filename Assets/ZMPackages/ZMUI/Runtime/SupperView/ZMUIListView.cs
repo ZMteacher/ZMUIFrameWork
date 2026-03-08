@@ -51,10 +51,10 @@ namespace  ZM.UI
             else
             {
                 //数据发生变化，重新设置最新的数据，数据增删必须要调用此接口，否则会出现item索引与数据不一致和一切其他的显示BUG
-                loopListView.SetListItemCount(m_ViewDataCount, false);
+                loopListView.SetListItemCount(m_ViewDataCount, reSetPos);
                 if (reSetPos)
                 {
-                    loopListView.MovePanelToItemIndex(0,0);
+                    // loopListView.MovePanelToItemIndex(0,0);
                     loopListView.RefreshAllShownItem();
                 }
                 else
