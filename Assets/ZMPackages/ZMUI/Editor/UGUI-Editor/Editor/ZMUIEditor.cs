@@ -70,7 +70,7 @@ public class ZMUIEditor : Editor
             }
         }
     }
-    [MenuItem("GameObject/添加参考图", false, -1)]
+    [MenuItem("GameObject/ZMUI/添加参考图", false, -1)]
     public static void LoadRefertoTexture()
     {
         Transform parent = null;
@@ -104,7 +104,7 @@ public class ZMUIEditor : Editor
         image.AddComponent<Decorate>();
         return image;
     }
-    [MenuItem("GameObject/优化Batch",false,-2)]
+    [MenuItem("GameObject/ZMUI/优化Batch", false, -2)]
     public static void OptimizationUIBatch()
     {
         UILayoutTool.OptimizeBatchForMenu();

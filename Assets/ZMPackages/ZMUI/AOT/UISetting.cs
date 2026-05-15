@@ -27,6 +27,14 @@ public enum ParseType
     Tag,  // 标签 Tag 解析
 }
 
+/// <summary>组件映射条目：Key（前缀/Tag名）→ ComponentType（C# 类型名）</summary>
+[System.Serializable]
+public class ComponentMapping
+{
+    public string Key;           // 前缀名或 Tag 名，如 "Btn"、"Text"
+    public string ComponentType; // 对应的 C# 组件类型，如 "Button"、"TextMeshProUGUI"
+}
+
 [CreateAssetMenu(fileName = "UISetting", menuName = "UISetting", order = 0)]
 public class UISetting : ScriptableObject
 {
@@ -70,6 +78,9 @@ public class UISetting : ScriptableObject
 
     /// <summary>自动生成脚本时 using 的命名空间列表</summary>
     public string[] UsingNameSpaceArr;
+
+    /// <summary>组件映射表（Key → ComponentType），空时回退到 GeneratorConfig 内置默认值</summary>
+    public ComponentMapping[] ComponentMappings;
 
     public void Save()
     {

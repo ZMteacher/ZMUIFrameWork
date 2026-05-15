@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: UISetting
   m_EditorClassIdentifier: 
   SINGMASK_SYSTEM: 1
-  ParseType: 0
+  ParseType: 1
   GeneratorType: 1
   BindComponentGeneratorPath: Assets/ZMPackages/ZMUI/Example/Scripts/AutoGenerate/BindCompoent
   FindComponentGeneratorPath: Assets/Scripts/AutoGenerate/FindCompoent
@@ -26,3 +26,34 @@ MonoBehaviour:
   - UnityEngine
   - UnityEngine.UI
   - SuperScrollView
+  ComponentMappings:
+  - Key: Text
+    ComponentType: Text
+  - Key: Image
+    ComponentType: Image
+  - Key: RawImage
+    ComponentType: RawImage
+  - Key: Button
+    ComponentType: Button
+  - Key: InputField
+    ComponentType: InputField
+  - Key: Toggle
+    ComponentType: Toggle
+  - Key: Slider
+    ComponentType: Slider
+  - Key: Scrollbar
+    ComponentType: Scrollbar
+  - Key: Dropdown
+    ComponentType: Dropdown
+  - Key: Canvas
+    ComponentType: Canvas
+  - Key: Panel
+    ComponentType: Panel
+  - Key: ScrollRect
+    ComponentType: ScrollRect
+  - Key: Transform
+    ComponentType: Trans
+  - Key: RectTransform
+    ComponentType: RectTrans
+  - Key: GameObject
+    ComponentType: Obj

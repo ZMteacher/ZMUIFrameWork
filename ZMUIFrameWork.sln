@@ -1,0 +1,45 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SuperScrollView", "SuperScrollView.csproj", "{2e68097e-cd2a-fb2a-5c3a-757ae2cab558}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demigiant", "Demigiant.csproj", "{aa19d2a7-eb08-b4a9-3a16-012d9e991e15}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZM.UI", "ZM.UI.csproj", "{62cc0f81-8fb6-cddb-be58-03b465c5458b}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZM.UI.AOT", "ZM.UI.AOT.csproj", "{0c158eb4-ea36-f88b-51f8-df421f2a8295}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UIGUI.Ediotr", "UIGUI.Ediotr.csproj", "{c0c0b81d-269f-a0b7-839b-6b6b0e513dda}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SuperScrollView.Editor", "SuperScrollView.Editor.csproj", "{1fd5e48c-c27d-608e-17fb-ff376da32bc0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZMUI.Editor", "ZMUI.Editor.csproj", "{8fc43c64-8486-e6df-1eb5-3526c7368646}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DoTweenProGameEditor", "DoTweenProGameEditor.csproj", "{21f171e5-c1d8-2ee7-3023-523d580e1954}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2e68097e-cd2a-fb2a-5c3a-757ae2cab558}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2e68097e-cd2a-fb2a-5c3a-757ae2cab558}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{aa19d2a7-eb08-b4a9-3a16-012d9e991e15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{aa19d2a7-eb08-b4a9-3a16-012d9e991e15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{62cc0f81-8fb6-cddb-be58-03b465c5458b}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{62cc0f81-8fb6-cddb-be58-03b465c5458b}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0c158eb4-ea36-f88b-51f8-df421f2a8295}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0c158eb4-ea36-f88b-51f8-df421f2a8295}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{c0c0b81d-269f-a0b7-839b-6b6b0e513dda}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{c0c0b81d-269f-a0b7-839b-6b6b0e513dda}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1fd5e48c-c27d-608e-17fb-ff376da32bc0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1fd5e48c-c27d-608e-17fb-ff376da32bc0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8fc43c64-8486-e6df-1eb5-3526c7368646}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8fc43c64-8486-e6df-1eb5-3526c7368646}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21f171e5-c1d8-2ee7-3023-523d580e1954}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21f171e5-c1d8-2ee7-3023-523d580e1954}.Debug|Any CPU.Build.0 = Debug|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

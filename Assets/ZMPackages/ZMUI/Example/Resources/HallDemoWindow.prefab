@@ -101,7 +101,7 @@ GameObject:
   - component: {fileID: 4097863025230300462}
   - component: {fileID: 4097863025230300461}
   - component: {fileID: 8962535399284849013}
-  - component: {fileID: 6446083076301348382}
+  - component: {fileID: 7296050991119916457}
   m_Layer: 5
   m_Name: HallDemoWindow
   m_TagString: Untagged
@@ -206,7 +206,7 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
---- !u!114 &6446083076301348382
+--- !u!114 &7296050991119916457
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -220,8 +220,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CloseButton: {fileID: 1143490736039752550}
   LogoImage: {fileID: 1371505409868299110}
-  ContentDesText: {fileID: 9179542681519543996}
   ZMUIFrameWorkText: {fileID: 9179542680603031478}
+  ContentDesText: {fileID: 9179542681519543996}
   HeadInfoButton: {fileID: 9179542679477240221}
   NoticeButton: {fileID: 9179542680791406481}
   TopRightCurrencyItemArray:
