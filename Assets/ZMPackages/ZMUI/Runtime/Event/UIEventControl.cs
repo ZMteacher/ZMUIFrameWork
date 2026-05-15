@@ -29,15 +29,13 @@ public class UIEventControl
 {
     public delegate void EventHandler(object data);
 
-    private static readonly Dictionary<UIEventEnum, List<EventHandler>> mEventDic
-        = new Dictionary<UIEventEnum, List<EventHandler>>();
+    private static readonly Dictionary<UIEventEnum, List<EventHandler>> mEventDic = new Dictionary<UIEventEnum, List<EventHandler>>();
 
     // 当前正在派发的事件类型（支持嵌套派发）
     private static int mDispatchingDepth = 0;
 
     // 派发期间缓存的待处理操作
-    private static readonly List<(bool isAdd, UIEventEnum type, EventHandler handler)> mPendingOps
-        = new List<(bool, UIEventEnum, EventHandler)>();
+    private static readonly List<(bool isAdd, UIEventEnum type, EventHandler handler)> mPendingOps = new List<(bool, UIEventEnum, EventHandler)>();
 
     /// <summary>
     /// 注册事件
