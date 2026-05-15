@@ -1,4 +1,4 @@
-﻿/*----------------------------------------------------------------------------
+/*----------------------------------------------------------------------------
 * Title: ZMUIFrameWork 一款Mono分离式UI管理框架
 *
 * Author: 铸梦xy
@@ -12,21 +12,21 @@
 *
 * GitHub：https://github.com/ZMteacher?tab=repositories
 ----------------------------------------------------------------------------*/
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+
 /// <summary>
 /// UI事件派发中心
 /// 由逻辑层调用，UI层接收
 /// 代替直接交互，进行解耦
 /// </summary>
-public class UIEventControl  
+public class UIEventControl
 {
     /// <summary>
     /// 委托事件
     /// </summary>
-    /// <param name="data"></param>
     public delegate void EventHandler(object data);
+
     /// <summary>
     /// 事件派发注册字典
     /// </summary>
@@ -35,49 +35,72 @@ public class UIEventControl
     /// <summary>
     /// 注册事件
     /// </summary>
-    /// <param name="eventType"></param>
-    /// <param name="eventHandler"></param>
-    public static void AddEvent(UIEventEnum eventType,EventHandler eventHandler)
+    public static void AddEvent(UIEventEnum eventType, EventHandler eventHandler)
     {
         if (!mEventDic.ContainsKey(eventType))
         {
-            mEventDic.Add(eventType,new List<EventHandler>());
+            mEventDic.Add(eventType, new List<EventHandler>());
         }
         if (!mEventDic[eventType].Contains(eventHandler))
         {
             mEventDic[eventType].Add(eventHandler);
         }
     }
+
     /// <summary>
     /// 移除事件
     /// </summary>
-    /// <param name="eventType"></param>
-    /// <param name="eventHandler"></param>
     public static void RemoveEvent(UIEventEnum eventType, EventHandler eventHandler)
     {
-        if (mEventDic.ContainsKey(eventType))
+        if (mEventDic.TryGetValue(eventType, out List<EventHandler> eventList))
         {
-            if (mEventDic[eventType].Contains(eventHandler))
+            eventList.Remove(eventHandler);
+            // 无订阅者时移除 key，避免空列表堆积
+            if (eventList.Count == 0)
+                mEventDic.Remove(eventType);
+        }
+    }
+
+    /// <summary>
+    /// 分发事件
+    /// 修复：1. key 不存在时不再抛 NullReferenceException
+    ///       2. 拷贝列表后迭代，防止回调内部调用 RemoveEvent 引发集合修改异常
+    ///       3. 每个回调独立 try-catch，单个异常不影响其他订阅者执行
+    /// </summary>
+    public static void DispensEvent(UIEventEnum eventType, object data = null)
+    {
+        if (!mEventDic.TryGetValue(eventType, out List<EventHandler> eventList) || eventList.Count == 0)
+            return;
+
+        // 拷贝快照，防止回调中增删订阅者导致集合被修改
+        EventHandler[] snapshot = eventList.ToArray();
+        for (int i = 0; i < snapshot.Length; i++)
+        {
+            try
             {
-                mEventDic[eventType].Remove(eventHandler);
+                snapshot[i]?.Invoke(data);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[UIEventControl] 事件 {eventType} 的第 {i} 个回调执行异常：{e}");
             }
         }
     }
+
     /// <summary>
-    /// 分发事件
+    /// 移除某事件类型下的所有订阅者
     /// </summary>
-    /// <param name="eventType"></param>
-    /// <param name="data"></param>
-    public static void DispensEvent(UIEventEnum eventType,object data=null)
+    public static void RemoveAllEvents(UIEventEnum eventType)
     {
-        List<EventHandler> eventList = null;
         if (mEventDic.ContainsKey(eventType))
-        {
-            eventList = mEventDic[eventType];
-        }
-        for (int i = 0; i < eventList.Count; i++)
-        {
-            eventList[i]?.Invoke(data);
-        }
+            mEventDic.Remove(eventType);
+    }
+
+    /// <summary>
+    /// 清空全部事件（场景切换时调用）
+    /// </summary>
+    public static void ClearAllEvents()
+    {
+        mEventDic.Clear();
     }
 }
