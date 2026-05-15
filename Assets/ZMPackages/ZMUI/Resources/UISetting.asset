@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: UISetting
   m_EditorClassIdentifier: 
   SINGMASK_SYSTEM: 1
-  ParseType: 1
+  ParseType: 0
   GeneratorType: 1
   BindComponentGeneratorPath: Assets/ZMPackages/ZMUI/Example/Scripts/AutoGenerate/BindCompoent
   FindComponentGeneratorPath: Assets/Scripts/AutoGenerate/FindCompoent
