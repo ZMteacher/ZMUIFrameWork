@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://github.com/user-attachments/assets/9b1092c9-b784-4f5a-ad40-983ea720e887" alt="ZMUIFrameWork Banner" width="100%"/>
+<img src="https://raw.githubusercontent.com/ZMteacher/ZMUIFrameWork/main/docs/newimage.png" alt="ZMUIFrameWork Banner" width="100%"/>
 
 # ZMUIFrameWork
 
