@@ -19,32 +19,38 @@ using UnityEngine;
 /// UI事件派发中心
 /// 由逻辑层调用，UI层接收
 /// 代替直接交互，进行解耦
+///
+/// 性能设计：
+///   - DispensEvent 遍历原始列表，零堆内存分配
+///   - 派发期间若调用 AddEvent/RemoveEvent，操作会被缓存
+///   - 派发结束后统一应用，彻底避免"集合被修改"异常
 /// </summary>
 public class UIEventControl
 {
-    /// <summary>
-    /// 委托事件
-    /// </summary>
     public delegate void EventHandler(object data);
 
-    /// <summary>
-    /// 事件派发注册字典
-    /// </summary>
-    private static Dictionary<UIEventEnum, List<EventHandler>> mEventDic = new Dictionary<UIEventEnum, List<EventHandler>>();
+    private static readonly Dictionary<UIEventEnum, List<EventHandler>> mEventDic
+        = new Dictionary<UIEventEnum, List<EventHandler>>();
+
+    // 当前正在派发的事件类型（支持嵌套派发）
+    private static int mDispatchingDepth = 0;
+
+    // 派发期间缓存的待处理操作
+    private static readonly List<(bool isAdd, UIEventEnum type, EventHandler handler)> mPendingOps
+        = new List<(bool, UIEventEnum, EventHandler)>();
 
     /// <summary>
     /// 注册事件
     /// </summary>
     public static void AddEvent(UIEventEnum eventType, EventHandler eventHandler)
     {
-        if (!mEventDic.ContainsKey(eventType))
+        if (mDispatchingDepth > 0)
         {
-            mEventDic.Add(eventType, new List<EventHandler>());
+            // 派发中：延迟到派发结束后添加
+            mPendingOps.Add((true, eventType, eventHandler));
+            return;
         }
-        if (!mEventDic[eventType].Contains(eventHandler))
-        {
-            mEventDic[eventType].Add(eventHandler);
-        }
+        AddEventInternal(eventType, eventHandler);
     }
 
     /// <summary>
@@ -52,48 +58,60 @@ public class UIEventControl
     /// </summary>
     public static void RemoveEvent(UIEventEnum eventType, EventHandler eventHandler)
     {
-        if (mEventDic.TryGetValue(eventType, out List<EventHandler> eventList))
+        if (mDispatchingDepth > 0)
         {
-            eventList.Remove(eventHandler);
-            // 无订阅者时移除 key，避免空列表堆积
-            if (eventList.Count == 0)
-                mEventDic.Remove(eventType);
+            // 派发中：延迟到派发结束后移除，避免修改正在遍历的列表
+            mPendingOps.Add((false, eventType, eventHandler));
+            return;
         }
+        RemoveEventInternal(eventType, eventHandler);
     }
 
     /// <summary>
-    /// 分发事件
-    /// 修复：1. key 不存在时不再抛 NullReferenceException
-    ///       2. 拷贝列表后迭代，防止回调内部调用 RemoveEvent 引发集合修改异常
-    ///       3. 每个回调独立 try-catch，单个异常不影响其他订阅者执行
+    /// 分发事件（零 GC Alloc）
     /// </summary>
     public static void DispensEvent(UIEventEnum eventType, object data = null)
     {
         if (!mEventDic.TryGetValue(eventType, out List<EventHandler> eventList) || eventList.Count == 0)
             return;
 
-        // 拷贝快照，防止回调中增删订阅者导致集合被修改
-        EventHandler[] snapshot = eventList.ToArray();
-        for (int i = 0; i < snapshot.Length; i++)
+        mDispatchingDepth++;
+        try
         {
-            try
+            for (int i = 0; i < eventList.Count; i++)
             {
-                snapshot[i]?.Invoke(data);
+                try
+                {
+                    eventList[i]?.Invoke(data);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"[UIEventControl] 事件 {eventType} 第 {i} 个回调执行异常：{e}");
+                }
             }
-            catch (System.Exception e)
+        }
+        finally
+        {
+            mDispatchingDepth--;
+            // 最外层派发结束后，统一应用期间缓存的增删操作
+            if (mDispatchingDepth == 0 && mPendingOps.Count > 0)
             {
-                Debug.LogError($"[UIEventControl] 事件 {eventType} 的第 {i} 个回调执行异常：{e}");
+                ApplyPendingOperations();
             }
         }
     }
 
     /// <summary>
-    /// 移除某事件类型下的所有订阅者
+    /// 移除某事件类型的所有订阅者
     /// </summary>
     public static void RemoveAllEvents(UIEventEnum eventType)
     {
-        if (mEventDic.ContainsKey(eventType))
-            mEventDic.Remove(eventType);
+        if (mDispatchingDepth > 0)
+        {
+            Debug.LogWarning($"[UIEventControl] 派发中不支持 RemoveAllEvents，请在派发结束后调用");
+            return;
+        }
+        mEventDic.Remove(eventType);
     }
 
     /// <summary>
@@ -102,5 +120,41 @@ public class UIEventControl
     public static void ClearAllEvents()
     {
         mEventDic.Clear();
+        mPendingOps.Clear();
+        mDispatchingDepth = 0;
+    }
+
+    // ── 内部方法 ────────────────────────────────────────
+
+    private static void AddEventInternal(UIEventEnum eventType, EventHandler eventHandler)
+    {
+        if (!mEventDic.ContainsKey(eventType))
+            mEventDic.Add(eventType, new List<EventHandler>());
+
+        if (!mEventDic[eventType].Contains(eventHandler))
+            mEventDic[eventType].Add(eventHandler);
+    }
+
+    private static void RemoveEventInternal(UIEventEnum eventType, EventHandler eventHandler)
+    {
+        if (!mEventDic.TryGetValue(eventType, out List<EventHandler> eventList))
+            return;
+
+        eventList.Remove(eventHandler);
+        if (eventList.Count == 0)
+            mEventDic.Remove(eventType);
+    }
+
+    private static void ApplyPendingOperations()
+    {
+        for (int i = 0; i < mPendingOps.Count; i++)
+        {
+            var (isAdd, type, handler) = mPendingOps[i];
+            if (isAdd)
+                AddEventInternal(type, handler);
+            else
+                RemoveEventInternal(type, handler);
+        }
+        mPendingOps.Clear();
     }
 }
