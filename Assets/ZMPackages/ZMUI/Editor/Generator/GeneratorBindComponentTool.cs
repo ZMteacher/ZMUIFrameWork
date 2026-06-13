@@ -92,6 +92,9 @@ public class GeneratorBindComponentTool : Editor
         //根据字段数据列表 声明字段
         foreach (var item in objDataList)
         {
+            // bool isTMP = item.fieldType == "TMP_InputField";
+            // if (isTMP) sb.AppendLine("#if ZM_TMP_PRESENT");
+
             if (item.dataList != null && item.dataList.Count > 0)
             {
                 sb.AppendLine($"\t\tpublic   {item.fieldType}[]    {item.fieldName}{item.fieldType}Array;\n");
@@ -100,6 +103,8 @@ public class GeneratorBindComponentTool : Editor
             {
                 sb.AppendLine("\t\tpublic   " + item.fieldType + "  " + item.fieldName + item.fieldType + ";\n");
             }
+
+            // if (isTMP) sb.AppendLine("#endif");
         }
 
         //声明初始化组件接口
@@ -121,7 +126,13 @@ public class GeneratorBindComponentTool : Editor
                 suffix = "Click";
                 sb.AppendLine($"\t\t     target.AddButtonClickListener({methodName}{type},mWindow.On{methodName}Button{suffix});");
             }
-            if (type.Contains("InputField"))
+            if (type == "TMP_InputField")
+            {
+                // sb.AppendLine("#if ZM_TMP_PRESENT");
+                sb.AppendLine($"\t\t     target.AddTMPInputFieldListener({methodName}{type},mWindow.On{methodName}InputChange,mWindow.On{methodName}InputEnd);");
+                // sb.AppendLine("#endif");
+            }
+            else if (type == "InputField")
             {
                 sb.AppendLine($"\t\t     target.AddInputFieldListener({methodName}{type},mWindow.On{methodName}InputChange,mWindow.On{methodName}InputEnd);");
             }

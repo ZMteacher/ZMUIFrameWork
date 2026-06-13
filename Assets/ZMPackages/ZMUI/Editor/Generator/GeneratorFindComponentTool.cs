@@ -133,6 +133,9 @@ public class GeneratorFindComponentTool : Editor
         sb.AppendLine("using UnityEngine.UI;");
         sb.AppendLine("using UnityEngine;");
         sb.AppendLine("using ZM.UGUIPro;");
+        sb.AppendLine("#if ZM_TMP_PRESENT");
+        sb.AppendLine("using TMPro;");
+        sb.AppendLine("#endif");
         sb.AppendLine();
 
         //生成命名空间
@@ -147,7 +150,16 @@ public class GeneratorFindComponentTool : Editor
         //根据字段数据列表 声明字段
         foreach (var item in objDataList)
         {
-            sb.AppendLine("\t\tpublic   "+item.fieldType +"  "+item.fieldName+item.fieldType+";\n");
+            if (item.fieldType == "TMP_InputField")
+            {
+                sb.AppendLine("#if ZM_TMP_PRESENT");
+                sb.AppendLine("\t\tpublic   " + item.fieldType + "  " + item.fieldName + item.fieldType + ";\n");
+                sb.AppendLine("#endif");
+            }
+            else
+            {
+                sb.AppendLine("\t\tpublic   " + item.fieldType + "  " + item.fieldName + item.fieldType + ";\n");
+            }
         }
 
         //声明初始化组件接口
@@ -160,11 +172,14 @@ public class GeneratorFindComponentTool : Editor
             EditorObjectData itemData = GetEditorObjectData(item.Key);
             string relFieldName = itemData.fieldName + itemData.fieldType;
 
-            if (string.Equals("GameObject",itemData.fieldType))
+            bool isTMP = itemData.fieldType == "TMP_InputField";
+            if (isTMP) sb.AppendLine("#if ZM_TMP_PRESENT");
+
+            if (string.Equals("GameObject", itemData.fieldType))
             {
                 sb.AppendLine($"\t\t     {relFieldName} =target.transform.Find(\"{item.Value}\").gameObject;");
             }
-            else if (string.Equals("Transform",itemData.fieldType))
+            else if (string.Equals("Transform", itemData.fieldType))
             {
                 sb.AppendLine($"\t\t     {relFieldName} =target.transform.Find(\"{item.Value}\").transform;");
             }
@@ -172,6 +187,8 @@ public class GeneratorFindComponentTool : Editor
             {
                 sb.AppendLine($"\t\t     {relFieldName} =target.transform.Find(\"{item.Value}\").GetComponent<{itemData.fieldType}>();");
             }
+
+            if (isTMP) sb.AppendLine("#endif");
         }
         sb.AppendLine("\t");
         sb.AppendLine("\t");
@@ -190,7 +207,13 @@ public class GeneratorFindComponentTool : Editor
                 suffix = "Click";
                 sb.AppendLine($"\t\t     target.AddButtonClickListener({methodName}{type},mWindow.On{methodName}Button{suffix});");
             }
-            if (type.Contains("InputField"))
+            if (type == "TMP_InputField")
+            {
+                sb.AppendLine("#if ZM_TMP_PRESENT");
+                sb.AppendLine($"\t\t     target.AddTMPInputFieldListener({methodName}{type},mWindow.On{methodName}InputChange,mWindow.On{methodName}InputEnd);");
+                sb.AppendLine("#endif");
+            }
+            else if (type == "InputField")
             {
                 sb.AppendLine($"\t\t     target.AddInputFieldListener({methodName}{type},mWindow.On{methodName}InputChange,mWindow.On{methodName}InputEnd);");
             }

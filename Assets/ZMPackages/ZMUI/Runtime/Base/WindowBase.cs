@@ -15,6 +15,9 @@
 using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
+#if ZM_TMP_PRESENT
+using TMPro;
+#endif
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -28,6 +31,9 @@ public class WindowBase : WindowBehaviour
     private List<Toggle> mToggleList = new List<Toggle>();//所有的Toggle列表
     private List<Button> mAllButtonList = new List<Button>();//所有Button列表
     private List<InputField> mInputList = new List<InputField>();//所有的输入框列表
+#if ZM_TMP_PRESENT
+    private List<TMP_InputField> mTMPInputList = new List<TMP_InputField>();//所有的TMP输入框列表
+#endif
 
     protected bool mDisableAnim = false;//禁用动画
 
@@ -71,9 +77,15 @@ public class WindowBase : WindowBehaviour
         RemoveAllButtonListener();
         RemoveAllToggleListener();
         RemoveAllInputListener();
+#if ZM_TMP_PRESENT
+        RemoveAllTMPInputListener();
+#endif
         mAllButtonList.Clear();
         mToggleList.Clear();
         mInputList.Clear();
+#if ZM_TMP_PRESENT
+        mTMPInputList.Clear();
+#endif
     }
     #endregion
 
@@ -199,6 +211,22 @@ public class WindowBase : WindowBehaviour
             input.onEndEdit.AddListener(endAction);
         }
     }
+#if ZM_TMP_PRESENT
+    public void AddTMPInputFieldListener(TMP_InputField input, UnityAction<string> onChangeAction, UnityAction<string> endAction)
+    {
+        if (input != null)
+        {
+            if (!mTMPInputList.Contains(input))
+            {
+                mTMPInputList.Add(input);
+            }
+            input.onValueChanged.RemoveAllListeners();
+            input.onEndEdit.RemoveAllListeners();
+            input.onValueChanged.AddListener(onChangeAction);
+            input.onEndEdit.AddListener(endAction);
+        }
+    }
+#endif
     public void RemoveAllButtonListener()
     {
         foreach (var item in mAllButtonList)
@@ -224,5 +252,15 @@ public class WindowBase : WindowBehaviour
         }
 
     }
+#if ZM_TMP_PRESENT
+    public void RemoveAllTMPInputListener()
+    {
+        foreach (var item in mTMPInputList)
+        {
+            item.onValueChanged.RemoveAllListeners();
+            item.onEndEdit.RemoveAllListeners();
+        }
+    }
+#endif
     #endregion
 }
