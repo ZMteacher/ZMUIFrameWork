@@ -155,12 +155,12 @@ public class WindowBase : WindowBehaviour
     /// <summary>
     /// 伪隐藏触发接口
     /// </summary>
-    /// <param name="value"></param>
+    /// <param name="value">1=true,0=false</param>
     public virtual void PseudoHidden(int value)
     {
         mUIMaskCanvasGroup.alpha = mCanvasGroup.alpha = value;
-        mUIMaskCanvasGroup.interactable = mCanvasGroup.interactable = value == 1 ? true : false;
-        mUIMaskCanvasGroup.blocksRaycasts = mCanvasGroup.blocksRaycasts = value == 1 ? true : false;
+        mUIMaskCanvasGroup.interactable = mCanvasGroup.interactable = value == 1;
+        mUIMaskCanvasGroup.blocksRaycasts = mCanvasGroup.blocksRaycasts = value == 1;
 
     }
     public void PopUpWindow<T>() where T:WindowBase,new ()

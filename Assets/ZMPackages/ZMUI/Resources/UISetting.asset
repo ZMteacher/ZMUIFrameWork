@@ -52,8 +52,8 @@ MonoBehaviour:
   - Key: ScrollRect
     ComponentType: ScrollRect
   - Key: Transform
-    ComponentType: Trans
+    ComponentType: Transform
   - Key: RectTransform
-    ComponentType: RectTrans
+    ComponentType: RectTransform
   - Key: GameObject
-    ComponentType: Obj
+    ComponentType: GameObject

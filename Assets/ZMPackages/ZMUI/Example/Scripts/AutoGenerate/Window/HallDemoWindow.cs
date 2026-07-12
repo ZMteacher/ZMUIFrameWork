@@ -22,7 +22,18 @@ namespace ZM.UI
         public override void OnAwake()
         {
             dataCompt = gameObject.GetComponent<HallDemoWindowDataComponent>();
+            
             dataCompt.InitComponent(this);
+            
+            //开启Update渲染帧更新，默认不开，节省性能
+            Update = true;
+            
+            //标记为全屏窗口，智能显隐会监测当全屏弹窗弹出时，被遮挡的窗口都会通过伪隐藏隐藏掉，从而提升性能
+            FullScreenWindow = true;
+            
+            //禁用窗口弹出动画，可在基类中自定义动画形态
+            mDisableAnim = true;
+            
             base.OnAwake();
         }
 
@@ -34,6 +45,19 @@ namespace ZM.UI
             {
                 dataCompt.ContentDesText.DOText("是一款高性能、自动化、高流畅\n经过百万DAU商业项目验证的UI框架", 5);
             });
+        }
+
+        public override void PseudoHidden(int value)
+        {
+            base.PseudoHidden(value);
+            Debug.Log($"HallWindow PseudoHidden value: {value}");
+            dataCompt.cube3dGameObject.SetActive(value==1);
+        }
+
+        public override void OnUpdate()
+        {
+            base.OnUpdate();
+            
         }
 
         //物体隐藏时执行

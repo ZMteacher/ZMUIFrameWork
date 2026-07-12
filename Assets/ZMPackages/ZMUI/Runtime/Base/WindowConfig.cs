@@ -14,68 +14,150 @@
 ----------------------------------------------------------------------------*/
 using System.Collections.Generic;
 using System.IO;
-using UnityEditor;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 [CreateAssetMenu(fileName = "WindowConfig", menuName = "WindowConfig", order = 0)]
 public class WindowConfig : ScriptableObject
 {
     public List<WindowData> windowDataList = new List<WindowData>();
+
     /// <summary>
     /// 生成窗口预制体加载路径
     /// </summary>
     public void GeneratorWindowConfig()
     {
-        string[] windowRootArr = UISetting.Instance.WindowPrefabFolderPathArr;
-        //检测预制体路径或名称没有改变，如果没有就不需要生成配置
-        bool needUpdate = false;
-        foreach (var item in windowRootArr)
+        if (UISetting.Instance == null || UISetting.Instance.WindowPrefabFolderPathArr == null)
         {
-            string[] filePathArr =  Directory.GetFiles(Application.dataPath.Replace("Assets","") + item, "*.prefab", SearchOption.AllDirectories);
-            foreach (var path in filePathArr)
-            {
-                if (path.EndsWith(".meta")) continue;
-                WindowData windowData= GetWindowData(Path.GetFileNameWithoutExtension(path), false);
-                  
-                string windowPath = windowData == null?string.Empty: windowData.path;
-                //路径不存在或路径不一致
-                if (string.IsNullOrEmpty(windowPath)|| (!string.IsNullOrEmpty(windowPath)&& windowPath.GetHashCode() != path.GetHashCode()))
-                {
-                    needUpdate = true;
-                    break;
-                }
-            }
-        }
-        if (!needUpdate)
-        {
-            Debug.Log("预制体个数没有发生改变，不生成窗口配置");
+            Debug.LogError("UISetting.Instance 或 WindowPrefabFolderPathArr 为空，无法生成窗口配置");
             return;
         }
 
-        windowDataList.Clear();
+        string[] windowRootArr = UISetting.Instance.WindowPrefabFolderPathArr;
+        List<WindowData> scannedWindowDataList = new List<WindowData>();
+
+        string projectRootPath = Application.dataPath.Replace("Assets", string.Empty);
         foreach (var item in windowRootArr)
         {
-            //获取预制体文件夹读取路径
-            string floder = Application.dataPath.Replace("Assets", "") + item;
-            //获取文件夹下的所有Prefab文件
-            string[] filePathArr = Directory.GetFiles(floder,"*.prefab",SearchOption.AllDirectories);
+            if (string.IsNullOrEmpty(item))
+            {
+                continue;
+            }
+
+            string folder = projectRootPath + item;
+            if (!Directory.Exists(folder))
+            {
+                Debug.LogWarning("窗口预制体目录不存在: " + folder);
+                continue;
+            }
+
+            string[] filePathArr = Directory.GetFiles(folder, "*.prefab", SearchOption.AllDirectories);
             foreach (var path in filePathArr)
             {
                 if (path.EndsWith(".meta"))
                 {
                     continue;
                 }
-                //获取预制体名字
+
                 string fileName = Path.GetFileNameWithoutExtension(path);
-                //计算文件读取路径 
                 string filePath = item + "/" + fileName;
-                WindowData data = new WindowData { name = fileName, path = filePath };
-                windowDataList.Add(data);
+                scannedWindowDataList.Add(new WindowData { name = fileName, path = NormalizePath(filePath) });
             }
         }
+
+        // 同名窗口会导致按 name 查询时产生歧义，这里提前给出明确错误。
+        HashSet<string> uniqueNames = new HashSet<string>();
+        foreach (var data in scannedWindowDataList)
+        {
+            if (!uniqueNames.Add(data.name))
+            {
+                Debug.LogError("检测到重复窗口名: " + data.name + "，请确保窗口名唯一");
+            }
+        }
+
+        bool needUpdate = !IsSameWindowData(scannedWindowDataList, windowDataList);
+        if (!needUpdate)
+        {
+            // Debug.Log("预制体配置无变化，不生成窗口配置");
+            return;
+        }
+
+        windowDataList.Clear();
+        windowDataList.AddRange(scannedWindowDataList);
+
 #if UNITY_EDITOR
-        EditorUtility.SetDirty(this);
-        AssetDatabase.SaveAssetIfDirty(this);
+        if (!string.IsNullOrEmpty(AssetDatabase.GetAssetPath(this)))
+        {
+            EditorUtility.SetDirty(this);
+            AssetDatabase.SaveAssetIfDirty(this);
+        }
 #endif
+    }
+    /// <summary>
+    /// 是否是相同配置数据
+    /// </summary>
+    /// <param name="latest"></param>
+    /// <param name="current"></param>
+    /// <returns></returns>
+    private static bool IsSameWindowData(List<WindowData> latest, List<WindowData> current)
+    {
+        if (latest == null || current == null) return false;
+       
+        if (latest.Count != current.Count)  return false;
+ 
+        Dictionary<string, string> currentMap = new Dictionary<string, string>();
+        foreach (var item in current)
+        {
+            if (item == null || string.IsNullOrEmpty(item.name))
+            {
+                return false;
+            }
+
+            string normalizedPath = NormalizePath(item.path);
+            if (currentMap.ContainsKey(item.name))
+            {
+                return false;
+            }
+            currentMap.Add(item.name, normalizedPath);
+        }
+
+        foreach (var item in latest)
+        {
+            if (item == null || string.IsNullOrEmpty(item.name))
+            {
+                return false;
+            }
+
+            string normalizedPath = NormalizePath(item.path);
+            string oldPath;
+            if (!currentMap.TryGetValue(item.name, out oldPath))
+            {
+                return false;
+            }
+
+            if (!string.Equals(oldPath, normalizedPath))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    /// <summary>
+    /// 统一路径符号
+    /// </summary>
+    /// <param name="path"></param>
+    /// <returns></returns>
+    private static string NormalizePath(string path)
+    {
+        if (string.IsNullOrEmpty(path))
+        {
+            return string.Empty;
+        }
+
+        return path.Replace('\\', '/').Trim();
     }
 
     /// <summary>

@@ -144,15 +144,16 @@ public class UIModule
     {
         System.Type type = typeof(T);
         string wndName = type.Name;
-        Debug.Log($"PopUpWindow:{wndName}");
-        WindowBase wnd = GetWindow(wndName);
-        if (wnd != null)
+        
+        Debug.Log($"PopUpWindow: {wndName}");
+  
+        if (GetWindow(wndName) != null)
         {
             return ShowWindow(wndName) as T;
         }
 
         T t = new T();
-        Debug.Log($"PopUpWindow new T:{t}");
+ 
         return InitializeWindow(t, wndName) as T;
     }
     private WindowBase PopUpWindow(WindowBase window)
@@ -281,6 +282,8 @@ public class UIModule
     {
         if (window != null && window.Visible)
         {
+            Debug.Log($"HideWindow: {window.Name}");
+            
             mVisibleWindowList.Remove(window);
             window.SetVisible(false);//隐藏弹窗物体
             SetWidnowMaskVisible();
