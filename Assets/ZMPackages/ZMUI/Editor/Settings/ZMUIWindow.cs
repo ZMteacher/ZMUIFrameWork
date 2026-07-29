@@ -1,967 +1,756 @@
-﻿/*----------------------------------------------------------------------------
-* Title: ZMUIFrameWork 一款Mono分离式UI管理框架
-*
-* Author: 铸梦xy
-*
-* Date: 2024/09/01 14:15:58
-*
-* Description: 高性能、自动化、自定义生命周期工作管线是该框架的特点，该框架属于MVC中的View层架构。
-* 设计简洁清晰、轻便小巧，可以对接至任意重中小型游戏项目中。
-*
-* Remarks: QQ:975659933 邮箱：zhumengxyedu@163.com
-*
-* GitHub：https://github.com/ZMteacher?tab=repositories
-----------------------------------------------------------------------------*/
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-public class ZMUIWindow : EditorWindow
+/// <summary>
+/// ZMUI 配置中心。
+/// 该类只负责窗口状态与页面编排，视觉资源由 <see cref="ZMUIEditorTheme"/> 管理，
+/// 配置持久化仍由 UISetting 负责，避免编辑器表现层侵入运行时数据。
+/// </summary>
+public sealed class ZMUIWindow : EditorWindow
 {
-    // ── Serialized Data ───────────────────────────────────────────────────────
-    private UISetting        mSetting;
-    private SerializedObject mSerializedObj;
-
-    private SerializedProperty mSingMaskProp;
-    private SerializedProperty mParseTypeProp;
-    private SerializedProperty mGeneratorTypeProp;
-    private SerializedProperty mBindPathProp;
-    private SerializedProperty mFindPathProp;
-    private SerializedProperty mWindowPathProp;
-    private SerializedProperty mItemPathProp;
-    private SerializedProperty mPrefabFolderArrProp;
-    private SerializedProperty mNamespaceArrProp;
-    private SerializedProperty mComponentMappingsProp;
-
-    // ── Layout ────────────────────────────────────────────────────────────────
-    private const float kHeaderH   = 52f;
-    private const float kSidebarW  = 168f;
-    private const float kItemH     = 44f;
-    private const float kPadding   = 16f;
-
-    private int       mSelectedPage;
-    private Vector2   mContentScroll;
-
-    // ── Textures (released on destroy) ───────────────────────────────────────
-    private Texture2D mTexAccent;
-    private Texture2D mTexAccentHover;
-    private Texture2D mTexSelected;
-    private Texture2D mTexHover;
-    private Texture2D mTexCard;
-    private Texture2D mTexGreen;
-    private Texture2D mTexGreenHover;
-    private Texture2D mTexRed;
-    private Texture2D mTexDivider;
-    private Texture2D mTexTagBadge;
-
-    // ── Styles ────────────────────────────────────────────────────────────────
-    private GUIStyle mStyleMenuItem;
-    private GUIStyle mStyleMenuItemSel;
-    private GUIStyle mStylePageTitle;
-    private GUIStyle mStylePageSub;
-    private GUIStyle mStyleCard;
-    private GUIStyle mStyleCardTitle;
-    private GUIStyle mStyleFieldLabel;
-    private GUIStyle mStyleHint;
-    private GUIStyle mStyleTabLeft;
-    private GUIStyle mStyleTabMid;
-    private GUIStyle mStyleTabRight;
-    private GUIStyle mStyleBtnBlue;
-    private GUIStyle mStyleBtnGreen;
-    private GUIStyle mStyleBtnRed;
-    private GUIStyle mStyleBtnBrowse;
-    private GUIStyle mStyleBtnFlat;     // 扁平添加按钮（同 TabBar 风格）
-    private GUIStyle mStyleHeaderTitle;
-    private GUIStyle mStyleBadge;
-    private bool mStylesBuilt;
-
-    // ── Colors ────────────────────────────────────────────────────────────────
-    // Accent blue
-    private static readonly Color kAccent      = new Color(0.243f, 0.522f, 0.957f);
-    private static readonly Color kAccentHover = new Color(0.337f, 0.592f, 0.976f);
-    // Dynamic (skin-aware)
-    private Color CHeader   => EditorGUIUtility.isProSkin ? new Color(0.137f, 0.137f, 0.137f) : new Color(0.22f,  0.22f,  0.22f);
-    private Color CSidebar  => EditorGUIUtility.isProSkin ? new Color(0.160f, 0.160f, 0.160f) : new Color(0.82f,  0.82f,  0.82f);
-    private Color CContent  => EditorGUIUtility.isProSkin ? new Color(0.215f, 0.215f, 0.215f) : new Color(0.925f, 0.925f, 0.925f);
-    private Color CDivider  => EditorGUIUtility.isProSkin ? new Color(0.098f, 0.098f, 0.098f) : new Color(0.65f,  0.65f,  0.65f);
-    private Color CCard     => EditorGUIUtility.isProSkin ? new Color(0.247f, 0.247f, 0.247f) : new Color(0.975f, 0.975f, 0.975f);
-    private Color CHover    => EditorGUIUtility.isProSkin ? new Color(0.270f, 0.270f, 0.270f) : new Color(0.76f,  0.76f,  0.76f);
-    private Color CTextPri  => EditorGUIUtility.isProSkin ? new Color(0.88f,  0.88f,  0.88f)  : new Color(0.10f,  0.10f,  0.10f);
-    private Color CTextSec  => EditorGUIUtility.isProSkin ? new Color(0.55f,  0.55f,  0.55f)  : new Color(0.42f,  0.42f,  0.42f);
-
-    // ── Menu Definition ───────────────────────────────────────────────────────
-    // 使用手绘彩色徽章代替 Unity 内置图标，保证在所有版本中显示一致、美观
-    private static readonly (string badge, string label, string sub, Color color)[] kPages =
+    private enum Page
     {
-        ("M", "遮罩模式",   "Mask System",    new Color(0.98f, 0.62f, 0.22f)),  // 橙色
-        ("C", "代码生成",   "Code Generator", new Color(0.27f, 0.68f, 0.98f)),  // 天蓝
-        ("P", "生成路径",   "Script Paths",   new Color(0.28f, 0.82f, 0.52f)),  // 绿色
-        ("F", "预制体路径", "Prefab Paths",   new Color(0.78f, 0.42f, 0.98f)),  // 紫色
-        ("N", "命名空间",   "Namespaces",     new Color(0.98f, 0.40f, 0.58f)),  // 玫红
+        Mask,
+        CodeGenerator,
+        ScriptPaths,
+        PrefabPaths,
+        Namespaces,
+        Manual
+    }
+
+    private readonly struct NavigationItem
+    {
+        internal readonly string Label;
+        internal readonly ZMUIEditorIcons.Icon Icon;
+
+        internal NavigationItem(string label, ZMUIEditorIcons.Icon icon)
+        {
+            Label = label;
+            Icon = icon;
+        }
+    }
+
+    private static readonly NavigationItem[] Navigation =
+    {
+        new NavigationItem("遮罩策略", ZMUIEditorIcons.Icon.Mask),
+        new NavigationItem("代码生成", ZMUIEditorIcons.Icon.Code),
+        new NavigationItem("生成路径", ZMUIEditorIcons.Icon.Folder),
+        new NavigationItem("预制体路径", ZMUIEditorIcons.Icon.Prefab),
+        new NavigationItem("命名空间", ZMUIEditorIcons.Icon.Namespace),
+        new NavigationItem("使用手册", ZMUIEditorIcons.Icon.Book)
     };
 
-    // ─────────────────────────────────────────────────────────────────────────
-    [MenuItem("ZM/ZMUI Setting", false, 2)]
+    private static readonly Dictionary<string, string> ExampleNames = new Dictionary<string, string>
+    {
+        { "Text", "title" },
+        { "Image", "icon" },
+        { "RawImage", "avatar" },
+        { "Button", "confirm" },
+        { "InputField", "input" },
+        { "Toggle", "check" },
+        { "Slider", "progress" },
+        { "Scrollbar", "scroll" },
+        { "Dropdown", "option" },
+        { "Canvas", "canvas" },
+        { "Panel", "panel" },
+        { "ScrollRect", "list" },
+        { "LoopListView2", "role" },
+        { "Transform", "node" },
+        { "RectTransform", "rect" },
+        { "GameObject", "item" }
+    };
+
+    private const float HeaderHeight = 72f;
+    private const float SidebarWidth = 220f;
+    private const float NavigationHeight = 52f;
+    private const float ContentPadding = 22f;
+    private const string ApiDocumentationUrl = "https://www.zm-doc.com/ZMUI/";
+
+    [SerializeField] private Page selectedPage = Page.CodeGenerator;
+    [SerializeField] private Vector2 scrollPosition;
+
+    private UISetting setting;
+    private SerializedObject serializedSetting;
+    private SerializedProperty singleMask;
+    private SerializedProperty parseType;
+    private SerializedProperty generatorType;
+    private SerializedProperty bindPath;
+    private SerializedProperty findPath;
+    private SerializedProperty windowPath;
+    private SerializedProperty itemPath;
+    private SerializedProperty prefabPaths;
+    private SerializedProperty namespaces;
+    private SerializedProperty componentMappings;
+    private bool themeAcquired;
+    private double savedFeedbackUntil;
+
+    [MenuItem("ZM/ZMUI Setting", false, 300)]
     public static void Open()
     {
-        var w = GetWindow<ZMUIWindow>(false, "ZMUI Setting");
-        w.minSize = new Vector2(740, 540);
-        w.Show();
+        ZMUIWindow window = GetWindow<ZMUIWindow>();
+        window.titleContent = new GUIContent("ZMUI", EditorGUIUtility.IconContent("Canvas Icon").image);
+        window.minSize = new Vector2(920, 650);
+        window.Show();
     }
 
     private void OnEnable()
     {
-        mStylesBuilt = false;
-        mSetting = UISetting.Instance;
-        if (mSetting == null) return;
-        mSerializedObj = new SerializedObject(mSetting);
-        CacheProps();
+        if (!themeAcquired)
+        {
+            ZMUIEditorTheme.Acquire();
+            themeAcquired = true;
+        }
+        titleContent = new GUIContent("ZMUI", EditorGUIUtility.IconContent("Canvas Icon").image);
+        wantsMouseMove = true;
+        BindSetting();
     }
 
-    private void OnDisable() => mSetting?.Save();
-
-    private void OnDestroy()
+    private void OnDisable()
     {
-        DestroyTex(ref mTexAccent);      DestroyTex(ref mTexAccentHover);
-        DestroyTex(ref mTexSelected);    DestroyTex(ref mTexHover);
-        DestroyTex(ref mTexCard);        DestroyTex(ref mTexGreen);
-        DestroyTex(ref mTexGreenHover);  DestroyTex(ref mTexRed);
-        DestroyTex(ref mTexDivider);     DestroyTex(ref mTexTagBadge);
+        SaveSetting(false);
+        if (!themeAcquired) return;
+        ZMUIEditorTheme.Release();
+        themeAcquired = false;
     }
 
-    private void CacheProps()
+    private void BindSetting()
     {
-        mSingMaskProp        = mSerializedObj.FindProperty("SINGMASK_SYSTEM");
-        mParseTypeProp       = mSerializedObj.FindProperty("ParseType");
-        mGeneratorTypeProp   = mSerializedObj.FindProperty("GeneratorType");
-        mBindPathProp        = mSerializedObj.FindProperty("BindComponentGeneratorPath");
-        mFindPathProp        = mSerializedObj.FindProperty("FindComponentGeneratorPath");
-        mWindowPathProp      = mSerializedObj.FindProperty("WindowGeneratorPath");
-        mItemPathProp        = mSerializedObj.FindProperty("ItemScriptsGeneratorPath");
-        mPrefabFolderArrProp = mSerializedObj.FindProperty("WindowPrefabFolderPathArr");
-        mNamespaceArrProp    = mSerializedObj.FindProperty("UsingNameSpaceArr");
-        mComponentMappingsProp = mSerializedObj.FindProperty("ComponentMappings");
-    }
-
-    // ── Style Builder ─────────────────────────────────────────────────────────
-    private void EnsureStyles()
-    {
-        if (mStylesBuilt) return;
-        mStylesBuilt = true;
-
-        mTexAccent      = Tex(kAccent);
-        mTexAccentHover = Tex(kAccentHover);
-        mTexSelected    = Tex(kAccent);
-        mTexHover       = Tex(CHover);
-        mTexCard        = Tex(CCard);
-        mTexGreen       = Tex(new Color(0.18f, 0.72f, 0.44f));
-        mTexGreenHover  = Tex(new Color(0.22f, 0.82f, 0.50f));
-        mTexRed         = Tex(new Color(0.82f, 0.22f, 0.22f));
-        mTexDivider     = Tex(CDivider);
-        mTexTagBadge    = Tex(new Color(0.28f, 0.52f, 0.88f, 0.4f));
-
-        // Sidebar item (normal)
-        mStyleMenuItem = new GUIStyle
+        setting = UISetting.Instance;
+        if (setting == null)
         {
-            normal    = { textColor = CTextPri },
-            hover     = { background = mTexHover, textColor = CTextPri },
-            padding   = new RectOffset(14, 8, 0, 0),
-            alignment = TextAnchor.MiddleLeft,
-            fontSize  = 12,
-        };
-
-        // Sidebar item (selected)
-        mStyleMenuItemSel = new GUIStyle(mStyleMenuItem)
-        {
-            normal    = { background = mTexSelected, textColor = Color.white },
-            hover     = { background = mTexAccentHover, textColor = Color.white },
-            fontStyle = FontStyle.Bold,
-        };
-
-        // Page title
-        mStylePageTitle = new GUIStyle
-        {
-            normal    = { textColor = CTextPri },
-            fontSize  = 16,
-            fontStyle = FontStyle.Bold,
-            margin    = new RectOffset(0, 0, 0, 0),
-        };
-        mStylePageSub = new GUIStyle
-        {
-            normal    = { textColor = CTextSec },
-            fontSize  = 11,
-            margin    = new RectOffset(0, 0, 2, 0),
-        };
-
-        // Card
-        mStyleCard = new GUIStyle
-        {
-            normal  = { background = mTexCard },
-            padding = new RectOffset(14, 14, 12, 12),
-            margin  = new RectOffset(0, 0, 0, 10),
-            border  = new RectOffset(2, 2, 2, 2),
-        };
-        mStyleCardTitle = new GUIStyle
-        {
-            normal    = { textColor = CTextSec },
-            fontSize  = 10,
-            fontStyle = FontStyle.Bold,
-            margin    = new RectOffset(0, 0, 0, 6),
-        };
-
-        // Field label
-        mStyleFieldLabel = new GUIStyle
-        {
-            normal  = { textColor = CTextSec },
-            fontSize = 11,
-            margin  = new RectOffset(0, 0, 0, 3),
-        };
-
-        // Hint text
-        mStyleHint = new GUIStyle
-        {
-            normal   = { textColor = CTextSec },
-            fontSize = 10,
-            wordWrap = true,
-            margin   = new RectOffset(0, 0, 4, 0),
-        };
-
-        // Tab bar styles
-        mStyleTabLeft  = new GUIStyle(EditorStyles.miniButtonLeft)  { fontSize = 11, fixedHeight = 26 };
-        mStyleTabMid   = new GUIStyle(EditorStyles.miniButtonMid)   { fontSize = 11, fixedHeight = 26 };
-        mStyleTabRight = new GUIStyle(EditorStyles.miniButtonRight) { fontSize = 11, fixedHeight = 26 };
-
-        // Blue button
-        mStyleBtnBlue = new GUIStyle(EditorStyles.miniButton)
-        {
-            normal    = { background = mTexAccent,      textColor = Color.white },
-            hover     = { background = mTexAccentHover, textColor = Color.white },
-            active    = { background = mTexAccent,      textColor = Color.white },
-            fontStyle = FontStyle.Bold,
-            fontSize  = 11,
-            padding   = new RectOffset(10, 10, 4, 4),
-        };
-
-        // Green button
-        mStyleBtnGreen = new GUIStyle(EditorStyles.miniButton)
-        {
-            normal    = { background = mTexGreen,      textColor = Color.white },
-            hover     = { background = mTexGreenHover, textColor = Color.white },
-            active    = { background = mTexGreen,      textColor = Color.white },
-            fontStyle = FontStyle.Bold,
-            fontSize  = 11,
-            padding   = new RectOffset(12, 12, 5, 5),
-        };
-
-        // Red button (delete)
-        mStyleBtnRed = new GUIStyle(EditorStyles.miniButton)
-        {
-            normal    = { background = mTexRed, textColor = Color.white },
-            hover     = { background = mTexRed, textColor = Color.white },
-            active    = { background = mTexRed, textColor = Color.white },
-            fontStyle = FontStyle.Bold,
-            fontSize  = 12,
-            padding   = new RectOffset(4, 4, 3, 3),
-        };
-
-        // Browse button
-        mStyleBtnBrowse = new GUIStyle(EditorStyles.miniButton)
-        {
-            normal  = { textColor = kAccent },
-            hover   = { textColor = kAccentHover },
-            fontSize = 11,
-        };
-
-        // Flat add/save button（同 TabBar 扁平风格，按下变蓝反馈）
-        mStyleBtnFlat = new GUIStyle(EditorStyles.miniButton)
-        {
-            fontSize    = 11,
-            fontStyle   = FontStyle.Normal,
-            active      = { background = mTexAccent, textColor = Color.white },
-        };
-
-        // Header title
-        mStyleHeaderTitle = new GUIStyle
-        {
-            normal    = { textColor = Color.white },
-            fontSize  = 15,
-            fontStyle = FontStyle.Bold,
-            alignment = TextAnchor.MiddleLeft,
-        };
-
-        // Badge
-        mStyleBadge = new GUIStyle
-        {
-            normal    = { background = mTexTagBadge, textColor = new Color(0.7f, 0.85f, 1f) },
-            fontSize  = 10,
-            alignment = TextAnchor.MiddleCenter,
-            padding   = new RectOffset(6, 6, 2, 2),
-            border    = new RectOffset(3, 3, 3, 3),
-        };
-    }
-
-    // ── OnGUI ─────────────────────────────────────────────────────────────────
-    private void OnGUI()
-    {
-        EnsureStyles();
-
-        if (mSetting == null || mSerializedObj == null)
-        {
-            EditorGUILayout.HelpBox("未找到 UISetting.asset，请在 Resources 目录下创建。", MessageType.Error);
+            serializedSetting = null;
             return;
         }
 
-        mSerializedObj.Update();
-
-        float w = position.width;
-        float h = position.height;
-
-        // ── Background planes ─────────────────────────────────────────────
-        EditorGUI.DrawRect(new Rect(0,          0,       w,               kHeaderH), CHeader);
-        EditorGUI.DrawRect(new Rect(0,          kHeaderH, kSidebarW,      h - kHeaderH), CSidebar);
-        EditorGUI.DrawRect(new Rect(kSidebarW,  kHeaderH, w - kSidebarW,  h - kHeaderH), CContent);
-
-        // Dividers
-        EditorGUI.DrawRect(new Rect(0,         kHeaderH - 1,  w,          1), CDivider);
-        EditorGUI.DrawRect(new Rect(kSidebarW, kHeaderH,      1,          h - kHeaderH), CDivider);
-
-        // ── Panels ────────────────────────────────────────────────────────
-        DrawHeader(w);
-        DrawSidebar(h);
-        DrawContentArea(w, h);
-
-        if (mSerializedObj.ApplyModifiedProperties())
-            mSetting.Save();
+        serializedSetting = new SerializedObject(setting);
+        singleMask = serializedSetting.FindProperty("SINGMASK_SYSTEM");
+        parseType = serializedSetting.FindProperty("ParseType");
+        generatorType = serializedSetting.FindProperty("GeneratorType");
+        bindPath = serializedSetting.FindProperty("BindComponentGeneratorPath");
+        findPath = serializedSetting.FindProperty("FindComponentGeneratorPath");
+        windowPath = serializedSetting.FindProperty("WindowGeneratorPath");
+        itemPath = serializedSetting.FindProperty("ItemScriptsGeneratorPath");
+        prefabPaths = serializedSetting.FindProperty("WindowPrefabFolderPathArr");
+        namespaces = serializedSetting.FindProperty("UsingNameSpaceArr");
+        componentMappings = serializedSetting.FindProperty("ComponentMappings");
     }
 
-    // ── Header ────────────────────────────────────────────────────────────────
-    private void DrawHeader(float w)
+    private void OnGUI()
     {
-        GUILayout.BeginArea(new Rect(0, 0, w, kHeaderH));
-        GUILayout.BeginHorizontal();
-        GUILayout.Space(16);
+        ZMUIEditorTheme.Ensure();
+        EditorGUI.DrawRect(new Rect(0, 0, position.width, position.height), ZMUIEditorTheme.Window);
 
-        // Accent bar decoration
-        var barRect = new Rect(14, (kHeaderH - 30) * 0.5f, 4, 30);
-        EditorGUI.DrawRect(barRect, kAccent);
-        GUILayout.Space(14);
-
-        // Title
-        GUILayout.Label("ZMUI Framework", mStyleHeaderTitle,
-            GUILayout.Height(kHeaderH), GUILayout.ExpandWidth(false));
-        GUILayout.Space(8);
-
-        // Version badge
-        GUILayout.Label("v 1.0.0", mStyleBadge,
-            GUILayout.Height(18), GUILayout.Width(50));
-
-        GUILayout.FlexibleSpace();
-
-        // Save button（垂直居中）
-        GUILayout.BeginVertical();
-        GUILayout.FlexibleSpace();
-        if (GUILayout.Button("  ✓  保存设置", mStyleBtnFlat,
-            GUILayout.Height(26), GUILayout.Width(90)))
-            mSetting.Save();
-        GUILayout.FlexibleSpace();
-        GUILayout.EndVertical();
-
-        GUILayout.Space(14);
-        GUILayout.EndHorizontal();
-        GUILayout.EndArea();
-    }
-
-    // ── Sidebar ───────────────────────────────────────────────────────────────
-    private void DrawSidebar(float h)
-    {
-        GUILayout.BeginArea(new Rect(0, kHeaderH, kSidebarW, h - kHeaderH));
-        GUILayout.Space(10);
-
-        for (int i = 0; i < kPages.Length; i++)
+        if (setting == null || serializedSetting == null)
         {
-            bool sel = mSelectedPage == i;
-            var (badge, label, sub, color) = kPages[i];
+            DrawMissingSetting();
+            return;
+        }
 
-            Rect rowRect = new Rect(0, i * kItemH + 10, kSidebarW, kItemH);
-            bool hover = rowRect.Contains(Event.current.mousePosition);
+        serializedSetting.Update();
+        DrawHeader();
+        DrawSidebar();
+        DrawContent();
 
-            // ── 选中状态：渐变卡片背景 + 左侧竖条 ──────────────────────────
-            if (Event.current.type == EventType.Repaint)
+        if (serializedSetting.ApplyModifiedProperties())
+        {
+            EditorUtility.SetDirty(setting);
+            savedFeedbackUntil = 0;
+        }
+
+        if (EditorApplication.timeSinceStartup < savedFeedbackUntil)
+            Repaint();
+    }
+
+    private void DrawMissingSetting()
+    {
+        Rect panel = new Rect((position.width - 520) * .5f, (position.height - 190) * .5f, 520, 190);
+        GUI.Box(panel, GUIContent.none, ZMUIEditorTheme.CardBox);
+        GUI.Label(new Rect(panel.x + 24, panel.y + 22, panel.width - 48, 28), "未找到 ZMUI 配置", ZMUIEditorTheme.PageTitle);
+        GUI.Label(new Rect(panel.x + 24, panel.y + 62, panel.width - 48, 44),
+            "请在 Resources 目录中创建 UISetting.asset，然后重新打开配置中心。",
+            ZMUIEditorTheme.Body);
+        if (GUI.Button(new Rect(panel.xMax - 144, panel.yMax - 58, 120, 38), "重新加载", ZMUIEditorTheme.PrimaryButton))
+            BindSetting();
+    }
+
+    private void DrawHeader()
+    {
+        Rect header = new Rect(0, 0, position.width, HeaderHeight);
+        EditorGUI.DrawRect(header, ZMUIEditorTheme.Header);
+        EditorGUI.DrawRect(new Rect(0, header.yMax - 1, header.width, 1), ZMUIEditorTheme.Border);
+
+        Rect logo = new Rect(24, 18, 36, 36);
+        GUI.Box(logo, GUIContent.none, ZMUIEditorTheme.Badge);
+        ZMUIEditorIcons.Draw(new Rect(31, 25, 22, 22), ZMUIEditorIcons.Icon.Logo,
+            new Color32(133, 148, 255, 255), 1.6f);
+        GUI.Label(new Rect(74, 14, 260, 44), "ZMUI 配置中心", ZMUIEditorTheme.HeaderTitle);
+        GUI.Label(new Rect(340, 25, 62, 24), "v1.0.0", ZMUIEditorTheme.Badge);
+
+        float right = position.width - 22;
+        DrawHeaderChip(ref right, 124,
+            EditorApplication.timeSinceStartup < savedFeedbackUntil ? "配置已保存" : "配置已同步",
+            ZMUIEditorIcons.Icon.Saved, ZMUIEditorTheme.Success);
+        DrawHeaderChip(ref right, 112,
+            generatorType.enumValueIndex == (int)GeneratorType.Bind ? "Bind 模式" : "Find 模式",
+            generatorType.enumValueIndex == (int)GeneratorType.Bind ? ZMUIEditorIcons.Icon.Link : ZMUIEditorIcons.Icon.Search,
+            ZMUIEditorTheme.Accent);
+        DrawHeaderChip(ref right, 78, "UGUI", ZMUIEditorIcons.Icon.UGUI, ZMUIEditorTheme.Cyan);
+        DrawThemeChip(ref right);
+    }
+
+    private void DrawThemeChip(ref float right)
+    {
+        const float width = 128f;
+        Rect rect = new Rect(right - width, 19, width, 34);
+        Color color = ZMUIEditorTheme.Accent;
+        Color previous = GUI.color;
+        GUI.color = Color.Lerp(Color.white, color, .25f);
+        GUI.Box(rect, GUIContent.none, ZMUIEditorTheme.StatusChip);
+        GUI.color = previous;
+
+        ZMUIEditorIcons.Draw(new Rect(rect.x + 11, rect.y + 9, 16, 16),
+            ZMUIEditorIcons.Icon.Palette, color, 1.5f);
+        GUI.Label(new Rect(rect.x + 33, rect.y, rect.width - 49, rect.height),
+            ZMUIEditorTheme.CurrentPresetName,
+            new GUIStyle(ZMUIEditorTheme.Body)
             {
-                if (sel)
+                alignment = TextAnchor.MiddleLeft,
+                normal = { textColor = color }
+            });
+        GUI.Label(new Rect(rect.xMax - 20, rect.y, 12, rect.height), "▾",
+            new GUIStyle(ZMUIEditorTheme.Body)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = color }
+            });
+
+        EditorGUIUtility.AddCursorRect(rect, MouseCursor.Link);
+        if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
+            ShowThemeMenu(rect);
+        right = rect.x - 10;
+    }
+
+    private void ShowThemeMenu(Rect anchor)
+    {
+        var menu = new GenericMenu();
+        foreach (ZMUIEditorTheme.Preset preset in Enum.GetValues(typeof(ZMUIEditorTheme.Preset)))
+        {
+            ZMUIEditorTheme.Preset captured = preset;
+            menu.AddItem(
+                new GUIContent(ZMUIEditorTheme.PresetName(preset)),
+                ZMUIEditorTheme.CurrentPreset == preset,
+                () =>
                 {
-                    // 水平渐变：左侧实色 → 右侧透明（32片叠加模拟渐变）
-                    const int kSlices = 32;
-                    float sliceW = rowRect.width / kSlices + 1f;
-                    for (int s = 0; s < kSlices; s++)
-                    {
-                        float t     = 1f - (float)s / kSlices;
-                        float alpha = t * 0.28f;
-                        EditorGUI.DrawRect(
-                            new Rect(rowRect.x + s * (rowRect.width / kSlices), rowRect.y, sliceW, rowRect.height),
-                            new Color(color.r, color.g, color.b, alpha));
-                    }
-                    // 左侧 3px 实色竖条
-                    EditorGUI.DrawRect(new Rect(rowRect.x, rowRect.y, 3f, rowRect.height), color);
-                }
-                else if (hover)
-                {
-                    EditorGUI.DrawRect(rowRect, new Color(color.r, color.g, color.b, 0.08f));
-                }
+                    ZMUIEditorTheme.SetPreset(captured);
+                    Repaint();
+                });
+        }
+        menu.DropDown(anchor);
+    }
+
+    private static void DrawHeaderChip(ref float right, float width, string text, ZMUIEditorIcons.Icon icon, Color color)
+    {
+        Rect rect = new Rect(right - width, 19, width, 34);
+        Color previous = GUI.color;
+        GUI.color = Color.Lerp(Color.white, color, .25f);
+        GUI.Box(rect, GUIContent.none, ZMUIEditorTheme.StatusChip);
+        GUI.color = previous;
+        ZMUIEditorIcons.Draw(new Rect(rect.x + 11, rect.y + 9, 16, 16), icon, color, 1.5f);
+        GUI.Label(new Rect(rect.x + 33, rect.y, rect.width - 39, rect.height), text,
+            new GUIStyle(ZMUIEditorTheme.Body) { alignment = TextAnchor.MiddleLeft, normal = { textColor = color } });
+        right = rect.x - 10;
+    }
+
+    private void DrawSidebar()
+    {
+        Rect sidebar = new Rect(0, HeaderHeight, SidebarWidth, position.height - HeaderHeight);
+        EditorGUI.DrawRect(sidebar, ZMUIEditorTheme.Sidebar);
+        EditorGUI.DrawRect(new Rect(sidebar.xMax - 1, sidebar.y, 1, sidebar.height), ZMUIEditorTheme.Border);
+
+        for (int i = 0; i < Navigation.Length; i++)
+        {
+            Rect row = new Rect(12, HeaderHeight + 16 + i * (NavigationHeight + 8), SidebarWidth - 24, NavigationHeight);
+            bool selected = selectedPage == (Page)i;
+            bool hovered = row.Contains(Event.current.mousePosition);
+            if (selected)
+            {
+                GUI.Box(row, GUIContent.none, ZMUIEditorTheme.ModeCardSelected);
+                EditorGUI.DrawRect(new Rect(row.x, row.y + 8, 3, row.height - 16), ZMUIEditorTheme.Accent);
+            }
+            else if (hovered)
+            {
+                EditorGUI.DrawRect(row, new Color(1, 1, 1, .035f));
+                Repaint();
             }
 
-            // ── 点击响应 ────────────────────────────────────────────────────
-            if (GUI.Button(rowRect, GUIContent.none, GUIStyle.none))
-                mSelectedPage = i;
-
-            // ── 彩色徽章 + 双行文字 ────────────────────────────────────────
-            if (Event.current.type == EventType.Repaint)
+            ZMUIEditorIcons.Draw(new Rect(row.x + 16, row.y + 15, 22, 22), Navigation[i].Icon,
+                selected ? new Color32(145, 157, 255, 255) : new Color32(170, 177, 189, 255));
+            GUI.Label(row, Navigation[i].Label, selected ? ZMUIEditorTheme.NavItemSelected : ZMUIEditorTheme.NavItem);
+            if (GUI.Button(row, GUIContent.none, GUIStyle.none))
             {
-                const float kBadgeSize = 22f;
-                float badgeX = rowRect.x + 16f;
-                float badgeY = rowRect.y + (kItemH - kBadgeSize) * 0.5f;
-                var badgeRect = new Rect(badgeX, badgeY, kBadgeSize, kBadgeSize);
-                Color badgeColor = sel ? color : Color.Lerp(color, CSidebar, 0.18f);
-
-                EditorGUI.DrawRect(
-                    new Rect(badgeRect.x + 1f, badgeRect.y + 1f, badgeRect.width, badgeRect.height),
-                    new Color(0f, 0f, 0f, EditorGUIUtility.isProSkin ? 0.16f : 0.10f));
-                EditorGUI.DrawRect(badgeRect, badgeColor);
-
-                var badgeStyle = new GUIStyle
-                {
-                    normal    = { textColor = Color.white },
-                    fontSize  = 12,
-                    fontStyle = FontStyle.Bold,
-                    alignment = TextAnchor.MiddleCenter,
-                    clipping  = TextClipping.Clip,
-                };
-                GUI.Label(badgeRect, badge, badgeStyle);
-
-                float textX = badgeRect.xMax + 10f;
-                float textW = rowRect.xMax - textX - 10f;
-                var labelRect = new Rect(textX, rowRect.y + 6f, textW, 14f);
-                var subRect   = new Rect(textX, rowRect.y + 21f, textW, 12f);
-
-                var labelStyle = new GUIStyle
-                {
-                    normal    = { textColor = sel ? Color.white : CTextPri },
-                    fontSize  = 12,
-                    fontStyle = sel ? FontStyle.Bold : FontStyle.Normal,
-                    alignment = TextAnchor.MiddleLeft,
-                    clipping  = TextClipping.Clip,
-                };
-                var subStyle = new GUIStyle
-                {
-                    normal    = { textColor = sel ? new Color(1f, 1f, 1f, 0.72f) : CTextSec },
-                    fontSize  = 9,
-                    alignment = TextAnchor.MiddleLeft,
-                    clipping  = TextClipping.Clip,
-                };
-
-                GUI.Label(labelRect, label, labelStyle);
-                GUI.Label(subRect, sub, subStyle);
-            }
-        }
-
-        // 底部版权文字
-        GUILayout.FlexibleSpace();
-        var linkStyle = new GUIStyle
-        {
-            normal    = { textColor = new Color(0.4f, 0.4f, 0.4f) },
-            fontSize  = 9,
-            alignment = TextAnchor.MiddleCenter,
-        };
-        GUILayout.Label("ZMteacher / ZMUIFrameWork", linkStyle, GUILayout.Height(24));
-        GUILayout.EndArea();
-    }
-
-    // ── Content Area ─────────────────────────────────────────────────────────
-    private void DrawContentArea(float w, float h)
-    {
-        float cx = kSidebarW + 1;
-        float cw = w - cx;
-
-        GUILayout.BeginArea(new Rect(cx, kHeaderH, cw, h - kHeaderH));
-        mContentScroll = GUILayout.BeginScrollView(mContentScroll, false, false,
-            GUIStyle.none, GUI.skin.verticalScrollbar);
-
-        GUILayout.Space(kPadding);
-        GUILayout.BeginHorizontal();
-        GUILayout.Space(kPadding);
-        GUILayout.BeginVertical();
-
-        switch (mSelectedPage)
-        {
-            case 0: DrawPageMask();      break;
-            case 1: DrawPageCodeGen();   break;
-            case 2: DrawPagePaths();     break;
-            case 3: DrawPagePrefabs();   break;
-            case 4: DrawPageNamespace(); break;
-        }
-
-        GUILayout.Space(kPadding * 2);
-        GUILayout.EndVertical();
-        GUILayout.Space(kPadding);
-        GUILayout.EndHorizontal();
-
-        GUILayout.EndScrollView();
-        GUILayout.EndArea();
-    }
-
-    // ── Pages ─────────────────────────────────────────────────────────────────
-
-    private void DrawPageMask()
-    {
-        PageTitle("窗口遮罩模式", "配置多窗口叠加时的遮罩处理策略");
-
-        BeginCard("遮罩策略");
-        bool val = mSingMaskProp.boolValue;
-        EditorGUILayout.BeginHorizontal();
-        GUILayout.Label("启用单遮模式", mStyleFieldLabel, GUILayout.Width(110));
-        val = EditorGUILayout.Toggle(val, GUILayout.Width(18));
-        mSingMaskProp.boolValue = val;
-        GUILayout.Space(6);
-        GUI.color = val ? new Color(0.25f, 0.85f, 0.5f) : new Color(0.6f, 0.6f, 0.6f);
-        GUILayout.Label(val ? "● 已启用" : "○ 已禁用",
-            new GUIStyle { normal = { textColor = GUI.color }, fontSize = 11, fontStyle = FontStyle.Bold },
-            GUILayout.ExpandWidth(false));
-        GUI.color = Color.white;
-        EditorGUILayout.EndHorizontal();
-        EndCard();
-
-        BeginCard("策略说明");
-        GUILayout.Label("单遮模式（推荐）", new GUIStyle { normal = { textColor = kAccent }, fontSize = 11, fontStyle = FontStyle.Bold });
-        GUILayout.Label("多个窗口叠加时共用同一个 Mask，透明度唯一，视觉更统一整洁。", mStyleHint);
-        GUILayout.Space(8);
-        GUILayout.Label("叠遮模式", new GUIStyle { normal = { textColor = CTextSec }, fontSize = 11, fontStyle = FontStyle.Bold });
-        GUILayout.Label("每个窗口拥有独立的 Mask，透明度叠加，适用于需要多层独立遮罩的场景。", mStyleHint);
-        EndCard();
-    }
-
-    private void DrawPageCodeGen()
-    {
-        PageTitle("代码自动化生成", "配置组件解析方式与代码生成策略");
-
-        BeginCard("组件解析方式");
-        GUILayout.Label("框架如何从预制体节点中识别组件类型", mStyleHint);
-        GUILayout.Space(8);
-        mParseTypeProp.enumValueIndex = TabBar(
-            mParseTypeProp.enumValueIndex,
-            new[] { "名称解析  [Button]field", "Tag 标签解析" });
-        GUILayout.Space(6);
-        string[] parseHints = {
-            "通过节点名称前缀识别组件，格式：[ComponentType]fieldName\n示例：[Button]btnStart  →  生成 Button btnStart 字段",
-            "通过节点右上角的 Tag 识别组件类型\n示例：节点 Tag 设为 Button  →  生成 Button 字段",
-        };
-        GUILayout.Label(parseHints[mParseTypeProp.enumValueIndex], mStyleHint);
-        EndCard();
-
-        BeginCard("代码生成方式");
-        GUILayout.Label("生成的组件引用代码类型", mStyleHint);
-        GUILayout.Space(8);
-        mGeneratorTypeProp.enumValueIndex = TabBar(
-            mGeneratorTypeProp.enumValueIndex,
-            new[] { "组件查找 (Find)", "组件绑定 (Bind)" });
-        GUILayout.Space(6);
-        string[] genHints = {
-            "运行时通过 transform.Find() 动态查找，兼容性强，适合频繁改动结构的项目。",
-            "生成序列化字段并在 Editor 直接赋值，性能更优，无运行时查找开销。（推荐）",
-        };
-        GUILayout.Label(genHints[mGeneratorTypeProp.enumValueIndex], mStyleHint);
-        EndCard();
-
-        DrawTagMappingReadOnly(mParseTypeProp.enumValueIndex == 0);
-    }
-
-    // 组件映射关系只读展示（isNameMode=true 时 Key 加 [] 包裹）
-    private void DrawTagMappingReadOnly(bool isNameMode)
-    {
-        // ── 公共样式 ─────────────────────────────────────────────────────────
-        var headerStyle = new GUIStyle
-        {
-            normal    = { textColor = CTextSec },
-            fontSize  = 10,
-            fontStyle = FontStyle.Bold,
-            padding   = new RectOffset(4, 0, 2, 4),
-        };
-        var arrowStyle = new GUIStyle
-        {
-            normal    = { textColor = CTextSec },
-            fontSize  = 11,
-            alignment = TextAnchor.MiddleCenter,
-        };
-        var idxStyle = new GUIStyle
-        {
-            normal    = { textColor = new Color(kAccent.r, kAccent.g, kAccent.b, 0.5f) },
-            fontSize  = 10,
-            alignment = TextAnchor.MiddleCenter,
-        };
-        var inputStyle = new GUIStyle(EditorStyles.label)
-        {
-            normal   = { textColor = CTextSec },
-            fontSize = 11,
-            padding  = new RectOffset(4, 0, 0, 0),
-        };
-        var codeKeyStyle = new GUIStyle(EditorStyles.label)
-        {
-            normal   = { textColor = CTextSec },
-            fontSize = 11,
-            padding  = new RectOffset(2, 0, 0, 0),
-        };
-        var codeTypeStyle = new GUIStyle(EditorStyles.label)
-        {
-            normal    = { textColor = kAccent },
-            fontSize  = 11,
-            fontStyle = FontStyle.Bold,
-            padding   = new RectOffset(2, 0, 0, 0),
-        };
-        var codeFieldStyle = new GUIStyle(EditorStyles.label)
-        {
-            normal   = { textColor = CTextPri },
-            fontSize = 11,
-            padding  = new RectOffset(2, 0, 0, 0),
-        };
-
-        // 每种组件对应的示例字段名（按默认 ComponentType 匹配）
-        var exampleNames = new System.Collections.Generic.Dictionary<string, string>
-        {
-            { "Text",          "title"    },
-            { "Image",         "icon"     },
-            { "RawImage",      "avatar"   },
-            { "Button",        "confirm"  },
-            { "InputField",    "input"    },
-            { "Toggle",        "check"    },
-            { "Slider",        "progress" },
-            { "Scrollbar",     "scroll"   },
-            { "Dropdown",      "option"   },
-            { "Canvas",        "canvas"   },
-            { "Panel",         "panel"    },
-            { "ScrollRect",    "list"     },
-            { "LoopListView2", "loop"     },
-            { "Transform",     "node"     },
-            { "RectTransform", "rect"     },
-            { "GameObject",    "item"     },
-        };
-
-        if (isNameMode)
-        {
-            // ── 名称解析：只读展示 ────────────────────────────────────────────
-            BeginCard("组件映射关系（名称解析）");
-            GUILayout.Label("节点命名格式：[Key]fieldName，生成字段示例如下", mStyleHint);
-            GUILayout.Space(8);
-
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.Label("#",           headerStyle, GUILayout.Width(20));
-            GUILayout.Label("节点命名",    headerStyle, GUILayout.Width(130));
-            GUILayout.Label("",            headerStyle, GUILayout.Width(22));
-            GUILayout.Label("生成字段",    headerStyle, GUILayout.ExpandWidth(true));
-            EditorGUILayout.EndHorizontal();
-
-            var divR = GUILayoutUtility.GetRect(0, 1, GUILayout.ExpandWidth(true));
-            EditorGUI.DrawRect(divR, CDivider);
-            GUILayout.Space(4);
-
-            var mappings = GeneratorConfig.GetMappings();
-            for (int i = 0; i < mappings.Length; i++)
-            {
-                var rowRect = GUILayoutUtility.GetRect(0, 22, GUILayout.ExpandWidth(true));
-                if (i % 2 == 0)
-                    EditorGUI.DrawRect(rowRect, new Color(kAccent.r, kAccent.g, kAccent.b, 0.04f));
-
-                string key      = mappings[i].Key;
-                string compType = mappings[i].ComponentType;
-                string example  = exampleNames.TryGetValue(compType, out var n) ? n : "name";
-                string inputTxt = $"[{key}]{example}";
-                string field    = $"{example}{compType}";
-
-                float x = rowRect.x;
-                GUI.Label(new Rect(x, rowRect.y, 20,  rowRect.height), $"{i + 1}", idxStyle);   x += 20;
-                GUI.Label(new Rect(x, rowRect.y, 130, rowRect.height), inputTxt,   inputStyle); x += 130;
-                GUI.Label(new Rect(x, rowRect.y, 22,  rowRect.height), "→",        arrowStyle); x += 22;
-                float kwW   = 44f;
-                GUI.Label(new Rect(x, rowRect.y, kwW, rowRect.height), "public", codeKeyStyle); x += kwW;
-                float typeW = GUI.skin.label.CalcSize(new GUIContent(compType)).x + 6f;
-                GUI.Label(new Rect(x, rowRect.y, typeW, rowRect.height), compType, codeTypeStyle); x += typeW;
-                GUI.Label(new Rect(x, rowRect.y, rowRect.width - x + rowRect.x, rowRect.height), field, codeFieldStyle);
-            }
-            GUILayout.Space(4);
-            EndCard();
-        }
-        else
-        {
-            // ── Tag 解析：Key 可编辑，ComponentType 只读 ───────────────────────
-            // 若映射表为空，先用默认值填充
-            if (mComponentMappingsProp.arraySize == 0)
-            {
-                foreach (var def in GeneratorConfig.DefaultMappings)
-                {
-                    mComponentMappingsProp.InsertArrayElementAtIndex(mComponentMappingsProp.arraySize);
-                    var e = mComponentMappingsProp.GetArrayElementAtIndex(mComponentMappingsProp.arraySize - 1);
-                    e.FindPropertyRelative("Key").stringValue           = def.Key;
-                    e.FindPropertyRelative("ComponentType").stringValue = def.ComponentType;
-                }
-            }
-
-            BeginCard("Tag 映射配置");
-            GUILayout.Label("配置每种组件类型对应的 Tag 名，节点 Tag 设为该值即可被框架识别", mStyleHint);
-            GUILayout.Space(8);
-
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.Label("#",               headerStyle, GUILayout.Width(20));
-            GUILayout.Label("Tag 名（可编辑）", headerStyle, GUILayout.Width(120));
-            GUILayout.Label("",                headerStyle, GUILayout.Width(22));
-            GUILayout.Label("生成字段预览",    headerStyle, GUILayout.ExpandWidth(true));
-            EditorGUILayout.EndHorizontal();
-
-            var divR2 = GUILayoutUtility.GetRect(0, 1, GUILayout.ExpandWidth(true));
-            EditorGUI.DrawRect(divR2, CDivider);
-            GUILayout.Space(4);
-
-            for (int i = 0; i < mComponentMappingsProp.arraySize; i++)
-            {
-                var entry    = mComponentMappingsProp.GetArrayElementAtIndex(i);
-                var keyProp  = entry.FindPropertyRelative("Key");
-                var typeProp = entry.FindPropertyRelative("ComponentType");
-
-                var rowRect = GUILayoutUtility.GetRect(0, 22, GUILayout.ExpandWidth(true));
-                if (i % 2 == 0)
-                    EditorGUI.DrawRect(rowRect, new Color(kAccent.r, kAccent.g, kAccent.b, 0.04f));
-
-                string compType = typeProp.stringValue;
-                string example  = exampleNames.TryGetValue(compType, out var n2) ? n2 : "name";
-                string field    = $"{example}{compType}";
-
-                float x = rowRect.x;
-
-                // 序号
-                GUI.Label(new Rect(x, rowRect.y, 20, rowRect.height), $"{i + 1}", idxStyle);
-                x += 20;
-
-                // 可编辑 Key（Tag 名）
-                keyProp.stringValue = EditorGUI.TextField(
-                    new Rect(x, rowRect.y + 2, 116, rowRect.height - 4), keyProp.stringValue);
-                x += 120;
-
-                // →
-                GUI.Label(new Rect(x, rowRect.y, 22, rowRect.height), "→", arrowStyle);
-                x += 22;
-
-                // public Type fieldNameType（只读预览）
-                float kwW   = 44f;
-                GUI.Label(new Rect(x, rowRect.y, kwW, rowRect.height), "public", codeKeyStyle); x += kwW;
-                float typeW = GUI.skin.label.CalcSize(new GUIContent(compType)).x + 6f;
-                GUI.Label(new Rect(x, rowRect.y, typeW, rowRect.height), compType, codeTypeStyle); x += typeW;
-                GUI.Label(new Rect(x, rowRect.y, rowRect.width - x + rowRect.x, rowRect.height), field, codeFieldStyle);
-            }
-
-            GUILayout.Space(4);
-            if (GUILayout.Button("重置 Tag 为默认值", mStyleBtnFlat, GUILayout.Height(26)))
-            {
-                mComponentMappingsProp.ClearArray();
-                foreach (var def in GeneratorConfig.DefaultMappings)
-                {
-                    mComponentMappingsProp.InsertArrayElementAtIndex(mComponentMappingsProp.arraySize);
-                    var e = mComponentMappingsProp.GetArrayElementAtIndex(mComponentMappingsProp.arraySize - 1);
-                    e.FindPropertyRelative("Key").stringValue           = def.Key;
-                    e.FindPropertyRelative("ComponentType").stringValue = def.ComponentType;
-                }
-            }
-            GUILayout.Space(4);
-            EndCard();
-        }
-    }
-
-    private void DrawPagePaths()
-    {
-        PageTitle("脚本生成路径", "配置各类脚本文件的输出目录");
-
-        BeginCard("路径配置");
-        PathRow("组件绑定脚本", mBindPathProp);
-        if (mGeneratorTypeProp.enumValueIndex == (int)GeneratorType.Find)
-        {
-            Divider();
-            PathRow("组件查找脚本", mFindPathProp);
-        }
-        Divider();
-        PathRow("窗口交互脚本", mWindowPathProp);
-        Divider();
-        PathRow("Item 脚本",    mItemPathProp);
-        EndCard();
-    }
-
-    private void DrawPagePrefabs()
-    {
-        PageTitle("窗口预制体路径", "框架自动扫描以下目录中的 Prefab 作为窗口资源");
-        BeginCard("预制体目录列表");
-        ArrayField(mPrefabFolderArrProp, isFolder: true,
-            emptyHint: "尚未配置任何预制体路径，点击下方按钮添加",
-            addLabel:  "添加预制体路径");
-        EndCard();
-    }
-
-    private void DrawPageNamespace()
-    {
-        PageTitle("命名空间配置", "生成脚本时自动在文件顶部 using 以下命名空间");
-        BeginCard("命名空间列表");
-        ArrayField(mNamespaceArrProp, isFolder: false,
-            emptyHint: "尚未配置任何命名空间，点击下方按钮添加",
-            addLabel:  "添加命名空间");
-        EndCard();
-    }
-
-    // ── Component Helpers ─────────────────────────────────────────────────────
-
-    private void PageTitle(string title, string sub)
-    {
-        var rect = EditorGUILayout.BeginHorizontal(GUILayout.Height(36));
-        if (Event.current.type == EventType.Repaint)
-            EditorGUI.DrawRect(new Rect(rect.x, rect.y + 2, 4, 32), kAccent);
-        GUILayout.Space(14);
-        EditorGUILayout.BeginVertical();
-        GUILayout.Label(title, mStylePageTitle);
-        GUILayout.Label(sub,   mStylePageSub);
-        EditorGUILayout.EndVertical();
-        EditorGUILayout.EndHorizontal();
-        GUILayout.Space(14);
-    }
-
-    private void BeginCard(string cardTitle = "")
-    {
-        EditorGUILayout.BeginVertical(mStyleCard);
-        if (!string.IsNullOrEmpty(cardTitle))
-        {
-            GUILayout.Label(cardTitle.ToUpper(), mStyleCardTitle);
-            var r = GUILayoutUtility.GetRect(0, 1, GUILayout.ExpandWidth(true));
-            EditorGUI.DrawRect(r, CDivider);
-            GUILayout.Space(8);
-        }
-    }
-
-    private static void EndCard() => EditorGUILayout.EndVertical();
-
-    private void Divider()
-    {
-        GUILayout.Space(6);
-        var r = GUILayoutUtility.GetRect(0, 1, GUILayout.ExpandWidth(true));
-        EditorGUI.DrawRect(r, CDivider);
-        GUILayout.Space(6);
-    }
-
-    private int TabBar(int current, string[] options)
-    {
-        EditorGUILayout.BeginHorizontal();
-        for (int i = 0; i < options.Length; i++)
-        {
-            bool sel = current == i;
-            var style = i == 0 ? mStyleTabLeft : (i == options.Length - 1 ? mStyleTabRight : mStyleTabMid);
-            GUI.backgroundColor = sel ? kAccent : Color.white;
-            GUI.contentColor    = sel ? Color.white : CTextPri;
-            if (GUILayout.Button(options[i], style))
-                current = i;
-            GUI.backgroundColor = Color.white;
-            GUI.contentColor    = Color.white;
-        }
-        EditorGUILayout.EndHorizontal();
-        return current;
-    }
-
-    private void PathRow(string label, SerializedProperty prop)
-    {
-        GUILayout.Label(label, mStyleFieldLabel);
-        GUILayout.Space(2);
-        EditorGUILayout.BeginHorizontal();
-        prop.stringValue = EditorGUILayout.TextField(prop.stringValue, GUILayout.ExpandWidth(true));
-        if (GUILayout.Button(EditorGUIUtility.IconContent("d_FolderOpened Icon"), mStyleBtnBrowse, GUILayout.Width(26), GUILayout.Height(20)))
-        {
-            string sel = EditorUtility.OpenFolderPanel("选择目录",
-                string.IsNullOrEmpty(prop.stringValue) ? "Assets" : prop.stringValue, "");
-            if (!string.IsNullOrEmpty(sel))
-            {
-                prop.stringValue = ToRelative(sel);
+                selectedPage = (Page)i;
+                scrollPosition = Vector2.zero;
                 GUI.FocusControl(null);
             }
         }
-        EditorGUILayout.EndHorizontal();
+
+        GUI.Label(new Rect(18, position.height - 48, SidebarWidth - 36, 24),
+            "ZMteacher · ZMUI Framework",
+            new GUIStyle(ZMUIEditorTheme.Hint) { alignment = TextAnchor.MiddleCenter, fontSize = 10 });
     }
 
-    private void ArrayField(SerializedProperty arr, bool isFolder, string emptyHint, string addLabel)
+    private void DrawContent()
     {
-        if (arr.arraySize == 0)
+        Rect content = new Rect(SidebarWidth + 1, HeaderHeight, position.width - SidebarWidth - 1, position.height - HeaderHeight);
+        GUILayout.BeginArea(content);
+        using (var scroll = new EditorGUILayout.ScrollViewScope(scrollPosition, GUIStyle.none, GUI.skin.verticalScrollbar))
         {
-            GUILayout.Label(emptyHint, mStyleHint);
-            GUILayout.Space(6);
-        }
-
-        // 用 deleteIndex 记录待删行，循环结束后再删，避免 break 导致 Begin/End 不匹配
-        int deleteIndex = -1;
-
-        for (int i = 0; i < arr.arraySize; i++)
-        {
-            var elem = arr.GetArrayElementAtIndex(i);
-            EditorGUILayout.BeginHorizontal();
-
-            // Row index badge
-            var idxStyle = new GUIStyle
+            scrollPosition = scroll.scrollPosition;
+            GUILayout.Space(ContentPadding);
+            using (new EditorGUILayout.HorizontalScope())
             {
-                normal    = { textColor = kAccent },
-                fontSize  = 10,
-                alignment = TextAnchor.MiddleCenter,
-            };
-            GUILayout.Label($"{i + 1}", idxStyle, GUILayout.Width(18));
-
-            elem.stringValue = EditorGUILayout.TextField(elem.stringValue, GUILayout.ExpandWidth(true));
-
-            if (isFolder && GUILayout.Button(EditorGUIUtility.IconContent("d_FolderOpened Icon"), mStyleBtnBrowse, GUILayout.Width(26), GUILayout.Height(20)))
-            {
-                string sel = EditorUtility.OpenFolderPanel("选择目录",
-                    string.IsNullOrEmpty(elem.stringValue) ? "Assets" : elem.stringValue, "");
-                if (!string.IsNullOrEmpty(sel))
+                GUILayout.Space(ContentPadding);
+                using (new EditorGUILayout.VerticalScope())
                 {
-                    elem.stringValue = ToRelative(sel);
+                    switch (selectedPage)
+                    {
+                        case Page.Mask: DrawMaskPage(); break;
+                        case Page.CodeGenerator: DrawCodeGeneratorPage(); break;
+                        case Page.ScriptPaths: DrawScriptPathsPage(); break;
+                        case Page.PrefabPaths: DrawPrefabPathsPage(); break;
+                        case Page.Namespaces: DrawNamespacesPage(); break;
+                        case Page.Manual: DrawManualPage(); break;
+                    }
+                    GUILayout.Space(24);
+                }
+                GUILayout.Space(ContentPadding);
+            }
+        }
+        GUILayout.EndArea();
+    }
+
+    private static void DrawPageTitle(string title, string subtitle)
+    {
+        GUILayout.Label(title, ZMUIEditorTheme.PageTitle, GUILayout.Height(31));
+        GUILayout.Label(subtitle, ZMUIEditorTheme.PageSubtitle, GUILayout.Height(20));
+        GUILayout.Space(14);
+    }
+
+    private static void BeginCard(string title, string subtitle = null)
+    {
+        EditorGUILayout.BeginVertical(ZMUIEditorTheme.CardBox);
+        GUILayout.Label(title, ZMUIEditorTheme.CardTitle, GUILayout.Height(24));
+        if (!string.IsNullOrEmpty(subtitle))
+            GUILayout.Label(subtitle, ZMUIEditorTheme.Hint, GUILayout.Height(18));
+        GUILayout.Space(9);
+    }
+
+    private static void EndCard(float gap = 10)
+    {
+        EditorGUILayout.EndVertical();
+        GUILayout.Space(gap);
+    }
+
+    private static void DrawManualPage()
+    {
+        using (new EditorGUILayout.HorizontalScope(GUILayout.Height(54)))
+        {
+            using (new EditorGUILayout.VerticalScope())
+            {
+                GUILayout.Label("使用手册", ZMUIEditorTheme.PageTitle, GUILayout.Height(31));
+                GUILayout.Label("ZMUI 配置、组件解析与脚本生成工作流程",
+                    ZMUIEditorTheme.PageSubtitle, GUILayout.Height(20));
+            }
+            GUILayout.FlexibleSpace();
+            GUILayout.Space(12);
+            if (GUILayout.Button("打开 API 文档", ZMUIEditorTheme.PrimaryButton,
+                    GUILayout.Width(146), GUILayout.Height(38)))
+                Application.OpenURL(ApiDocumentationUrl);
+        }
+        GUILayout.Space(14);
+
+        BeginCard("快速开始", "推荐首次接入时按以下顺序完成");
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            DrawManualStep("01", "选择策略", "配置遮罩、解析与绑定模式");
+            GUILayout.Space(10);
+            DrawManualStep("02", "设置目录", "确认四类脚本与 Prefab 路径");
+            GUILayout.Space(10);
+            DrawManualStep("03", "标记节点", "按名称或 Tag 声明 UI 组件");
+            GUILayout.Space(10);
+            DrawManualStep("04", "生成代码", "预览并写入目标脚本");
+        }
+        EndCard(12);
+
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            DrawManualCard("配置中心",
+                "• 遮罩策略：推荐使用叠遮模式。\n\n" +
+                "• 组件解析：默认推荐名称解析。\n\n" +
+                "• 组件绑定：Bind 生成数据组件，Find 生成查找代码。\n\n" +
+                "• 修改配置后点击底部保存，确保 UISetting 持久化。");
+            GUILayout.Space(12);
+            DrawManualCard("脚本生成快捷键",
+                "Shift + B  生成组件数据脚本\n\n" +
+                "Shift + U  生成组件查找脚本\n\n" +
+                "Shift + V  生成 Window 表现层脚本\n\n" +
+                "Shift + I  生成 Item 脚本");
+        }
+        GUILayout.Space(12);
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            DrawManualCard("推荐生成流程",
+                "1. 在 Hierarchy 中选择窗口根节点。\n\n" +
+                "2. 按当前解析策略标记需要绑定的子节点。\n\n" +
+                "3. 先生成组件数据或组件查找脚本。\n\n" +
+                "4. 再生成 Window 脚本并确认 UI 事件。\n\n" +
+                "5. 在预览窗口检查代码和输出路径后生成。");
+            GUILayout.Space(12);
+            DrawManualCard("目录与更新规则",
+                "• 所有生成脚本必须位于当前项目 Assets 目录内。\n\n" +
+                "• 选择新目录后会保留原脚本文件名。\n\n" +
+                "• 已有 Window 只插入缺失的字段和事件方法。\n\n" +
+                "• 组件数据脚本会按最新路径执行自动挂载。\n\n" +
+                "• 建议将自动生成文件纳入版本控制。");
+        }
+    }
+
+    private static void DrawManualStep(string number, string title, string description)
+    {
+        using (new EditorGUILayout.VerticalScope(ZMUIEditorTheme.InfoBox,
+                   GUILayout.Height(82), GUILayout.ExpandWidth(true)))
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                GUILayout.Space(8);
+                using (new EditorGUILayout.VerticalScope())
+                {
+                    GUILayout.Label(number, new GUIStyle(ZMUIEditorTheme.CardTitle)
+                    {
+                        normal = { textColor = ZMUIEditorTheme.Accent }
+                    }, GUILayout.Height(20));
+                    GUILayout.Label(title, ZMUIEditorTheme.Label, GUILayout.Height(20));
+                    GUILayout.Label(description, ZMUIEditorTheme.Hint, GUILayout.Height(28));
+                }
+                GUILayout.Space(4);
+            }
+        }
+    }
+
+    private static void DrawManualCard(string title, string content)
+    {
+        using (new EditorGUILayout.VerticalScope(ZMUIEditorTheme.CardBox,
+                   GUILayout.MinHeight(210), GUILayout.ExpandWidth(true)))
+        {
+            GUILayout.Label(title, ZMUIEditorTheme.CardTitle, GUILayout.Height(24));
+            GUILayout.Space(8);
+            GUILayout.Label(content, ZMUIEditorTheme.Body, GUILayout.ExpandHeight(true));
+        }
+    }
+
+    private void DrawMaskPage()
+    {
+        DrawPageTitle("窗口遮罩策略", "配置多窗口叠加时的遮罩处理方式");
+
+        BeginCard("遮罩策略", "控制弹窗叠加时 Mask 的创建与透明度表现");
+        Rect row = GUILayoutUtility.GetRect(0, 62, GUILayout.ExpandWidth(true));
+        GUI.Label(new Rect(row.x, row.y + 5, row.width - 120, 24), "启用单遮模式", ZMUIEditorTheme.ModeTitle);
+        GUI.Label(new Rect(row.x, row.y + 29, row.width - 120, 20), "多个窗口共用一个遮罩，视觉统一且减少层级开销", ZMUIEditorTheme.ModeHint);
+        singleMask.boolValue = ZMUIEditorTheme.Toggle(new Rect(row.xMax - 52, row.y + 14, 48, 24), singleMask.boolValue);
+        EndCard();
+
+        BeginCard("策略说明");
+        if (DrawStrategyCard("单遮模式", "多个窗口叠加时共用同一个 Mask，透明度唯一。",
+                singleMask.boolValue, false))
+            singleMask.boolValue = true;
+        GUILayout.Space(8);
+        if (DrawStrategyCard("叠遮模式", "每个窗口拥有独立 Mask，层次表现更自然，适合多数弹窗场景。",
+                !singleMask.boolValue, true))
+            singleMask.boolValue = false;
+        EndCard();
+
+        DrawSaveActions();
+    }
+
+    private static bool DrawStrategyCard(string title, string description, bool selected, bool recommended)
+    {
+        Rect rect = GUILayoutUtility.GetRect(0, 64, GUILayout.ExpandWidth(true));
+        GUI.Box(rect, GUIContent.none, selected ? ZMUIEditorTheme.ModeCardSelected : ZMUIEditorTheme.ModeCard);
+        GUI.Label(new Rect(rect.x + 16, rect.y + 9, rect.width - 120, 22), title, ZMUIEditorTheme.ModeTitle);
+        if (recommended)
+            GUI.Label(new Rect(rect.xMax - 78, rect.y + 10, 62, 22), "推荐", ZMUIEditorTheme.SuccessBadge);
+        GUI.Label(new Rect(rect.x + 16, rect.y + 33, rect.width - 32, 20), description, ZMUIEditorTheme.ModeHint);
+        return GUI.Button(rect, GUIContent.none, GUIStyle.none);
+    }
+
+    private void DrawCodeGeneratorPage()
+    {
+        DrawPageTitle("代码自动化生成", "配置组件解析方式与代码生成策略");
+
+        BeginCard("组件解析方式", "框架如何从预制体节点中识别组件类型");
+        parseType.enumValueIndex = DrawSegments(parseType.enumValueIndex, "名称解析", "Tag 标签解析", true);
+        GUILayout.Space(10);
+        Rect info = GUILayoutUtility.GetRect(0, 40, GUILayout.ExpandWidth(true));
+        GUI.Box(info, GUIContent.none, ZMUIEditorTheme.InfoBox);
+        GUI.Label(info,
+            parseType.enumValueIndex == (int)ParseType.Name
+                ? "ⓘ   [Button]btnStart   →   Button btnStart"
+                : "ⓘ   Tag: Button   →   Button button",
+            ZMUIEditorTheme.InfoText);
+        EndCard();
+
+        BeginCard("代码生成方式");
+        Rect modes = GUILayoutUtility.GetRect(0, 92, GUILayout.ExpandWidth(true));
+        float gap = 14;
+        float cardWidth = (modes.width - gap) * .5f;
+        Rect findRect = new Rect(modes.x, modes.y, cardWidth, modes.height);
+        Rect bindRect = new Rect(findRect.xMax + gap, modes.y, cardWidth, modes.height);
+        DrawGeneratorMode(findRect, GeneratorType.Find, ZMUIEditorIcons.Icon.Search,
+            "组件查找 Find", "运行时动态查找");
+        DrawGeneratorMode(bindRect, GeneratorType.Bind, ZMUIEditorIcons.Icon.Link,
+            "组件绑定 Bind", "Editor 直接绑定 · 零运行时查找");
+        EndCard();
+
+        DrawMappings();
+        DrawSaveActions(true);
+    }
+
+    private int DrawSegments(int current, string first, string second, bool recommendFirst = false)
+    {
+        Rect rect = GUILayoutUtility.GetRect(0, 38, GUILayout.ExpandWidth(true));
+        float half = (rect.width - 6) * .5f;
+        Rect left = new Rect(rect.x, rect.y, half, rect.height);
+        Rect right = new Rect(left.xMax + 6, rect.y, half, rect.height);
+        if (GUI.Button(left, first, current == 0 ? ZMUIEditorTheme.SegmentSelected : ZMUIEditorTheme.Segment)) current = 0;
+        if (GUI.Button(right, second, current == 1 ? ZMUIEditorTheme.SegmentSelected : ZMUIEditorTheme.Segment)) current = 1;
+        if (recommendFirst)
+            GUI.Label(new Rect(left.xMax - 68, left.y + 8, 56, 22), "推荐", ZMUIEditorTheme.SuccessBadge);
+        return current;
+    }
+
+    private void DrawGeneratorMode(Rect rect, GeneratorType mode, ZMUIEditorIcons.Icon icon, string title, string description)
+    {
+        bool selected = generatorType.enumValueIndex == (int)mode;
+        GUI.Box(rect, GUIContent.none, selected ? ZMUIEditorTheme.ModeCardSelected : ZMUIEditorTheme.ModeCard);
+        Rect iconBox = new Rect(rect.x + 18, rect.y + 17, 48, 48);
+        GUI.Box(iconBox, GUIContent.none, selected ? ZMUIEditorTheme.ModeIconBoxSelected : ZMUIEditorTheme.ModeIconBox);
+        ZMUIEditorIcons.Draw(new Rect(iconBox.x + 9, iconBox.y + 9, 30, 30), icon,
+            selected ? ZMUIEditorTheme.Accent : ZMUIEditorTheme.Muted, 2.2f);
+        GUI.Label(new Rect(rect.x + 78, rect.y + 18, rect.width - 100, 24), title, ZMUIEditorTheme.ModeTitle);
+        GUI.Label(new Rect(rect.x + 78, rect.y + 48, rect.width - 96, 20), description, ZMUIEditorTheme.ModeHint);
+        if (mode == GeneratorType.Bind)
+            GUI.Label(new Rect(rect.xMax - 74, rect.y + 15, 56, 22), "推荐", ZMUIEditorTheme.SuccessBadge);
+        if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
+            generatorType.enumValueIndex = (int)mode;
+    }
+
+    private void DrawMappings()
+    {
+        EnsureDefaultMappings();
+        string title = parseType.enumValueIndex == (int)ParseType.Name ? "组件映射预览" : "Tag 映射配置";
+        EditorGUILayout.BeginVertical(ZMUIEditorTheme.CardBox);
+        using (new EditorGUILayout.HorizontalScope(GUILayout.Height(24)))
+        {
+            GUILayout.Label(title, ZMUIEditorTheme.CardTitle, GUILayout.Height(24));
+            GUILayout.FlexibleSpace();
+            GUILayout.Label($"{componentMappings.arraySize} 项映射", ZMUIEditorTheme.CountBadge,
+                GUILayout.Width(104), GUILayout.Height(24));
+        }
+        GUILayout.Space(9);
+
+        Rect table = GUILayoutUtility.GetRect(0, 34 + componentMappings.arraySize * 34, GUILayout.ExpandWidth(true));
+        GUI.Box(table, GUIContent.none, ZMUIEditorTheme.TableBox);
+        DrawTableHeader(new Rect(table.x + 14, table.y + 3, table.width - 28, 30));
+
+        for (int i = 0; i < componentMappings.arraySize; i++)
+        {
+            SerializedProperty entry = componentMappings.GetArrayElementAtIndex(i);
+            SerializedProperty key = entry.FindPropertyRelative("Key");
+            string type = entry.FindPropertyRelative("ComponentType").stringValue;
+            string example = ExampleNames.TryGetValue(type, out string field) ? field : "item";
+            Rect row = new Rect(table.x + 12, table.y + 34 + i * 34, table.width - 24, 34);
+            if (i % 2 == 0) EditorGUI.DrawRect(row, new Color(1, 1, 1, .025f));
+            DrawMappingRow(row, key, type, example);
+        }
+        EditorGUILayout.EndVertical();
+        GUILayout.Space(10);
+    }
+
+    private static void DrawTableHeader(Rect rect)
+    {
+        float first = rect.width * .34f;
+        float second = rect.width * .34f;
+        GUI.Label(new Rect(rect.x + 8, rect.y, first - 8, rect.height), "节点前缀", ZMUIEditorTheme.TableHeader);
+        GUI.Label(new Rect(rect.x + first, rect.y, second, rect.height), "组件类型", ZMUIEditorTheme.TableHeader);
+        GUI.Label(new Rect(rect.x + first + second, rect.y, rect.width - first - second, rect.height), "生成字段", ZMUIEditorTheme.TableHeader);
+    }
+
+    private void DrawMappingRow(Rect rect, SerializedProperty key, string componentType, string example)
+    {
+        float first = rect.width * .34f;
+        float second = rect.width * .34f;
+        bool nameMode = parseType.enumValueIndex == (int)ParseType.Name;
+        if (nameMode)
+        {
+            GUI.Label(new Rect(rect.x + 8, rect.y, first - 12, rect.height),
+                $"[{key.stringValue}]{example}", ZMUIEditorTheme.TableCell);
+        }
+        else
+        {
+            Rect field = new Rect(rect.x + 5, rect.y + 4, first - 14, 26);
+            key.stringValue = ZMUIEditorTheme.TextField(field, key.stringValue, "请输入 Tag");
+        }
+        Rect componentIcon = new Rect(rect.x + first, rect.y + 9, 16, 16);
+        ZMUIEditorIcons.DrawComponent(componentIcon, componentType);
+        GUI.Label(new Rect(rect.x + first + 23, rect.y, second - 23, rect.height), componentType, ZMUIEditorTheme.TableCell);
+        GUI.Label(new Rect(rect.x + first + second, rect.y, rect.width - first - second, rect.height),
+            $"{example}{componentType}", ZMUIEditorTheme.CodeCell);
+    }
+
+    private void DrawScriptPathsPage()
+    {
+        DrawPageTitle("脚本生成路径", "配置各类自动生成脚本的输出目录");
+        BeginCard("路径配置", "建议所有路径保持在 Assets 目录内，便于版本管理");
+        DrawPathRow("组件绑定脚本", bindPath, "Assets/Scripts/AutoGenerate/BindComponent");
+        if (generatorType.enumValueIndex == (int)GeneratorType.Find)
+            DrawPathRow("组件查找脚本", findPath, "Assets/Scripts/AutoGenerate/FindComponent");
+        DrawPathRow("窗口交互脚本", windowPath, "Assets/Scripts/AutoGenerate/Window");
+        DrawPathRow("Item 脚本", itemPath, "Assets/Scripts/AutoGenerate/Item");
+        EndCard();
+        DrawSaveActions();
+    }
+
+    private static void DrawPathRow(string label, SerializedProperty property, string placeholder)
+    {
+        GUILayout.Label(label, ZMUIEditorTheme.Label, GUILayout.Height(20));
+        Rect row = GUILayoutUtility.GetRect(0, 36, GUILayout.ExpandWidth(true));
+        Rect field = new Rect(row.x, row.y, row.width - 44, 34);
+        property.stringValue = ZMUIEditorTheme.TextField(field, property.stringValue, placeholder);
+        Rect folder = new Rect(field.xMax + 8, row.y, 36, 34);
+        if (GUI.Button(folder, EditorGUIUtility.IconContent("Folder Icon"), ZMUIEditorTheme.IconButton))
+        {
+            string selected = EditorUtility.OpenFolderPanel("选择目录", ToAbsolute(property.stringValue), string.Empty);
+            if (!string.IsNullOrEmpty(selected)) property.stringValue = ToProjectPath(selected);
+            GUI.FocusControl(null);
+        }
+        GUILayout.Space(8);
+    }
+
+    private void DrawPrefabPathsPage()
+    {
+        DrawPageTitle("窗口预制体路径", "框架会自动扫描以下目录中的 Prefab 作为窗口资源");
+        BeginCard("预制体目录列表", "可配置多个业务模块目录，生成器会按顺序扫描");
+        DrawArray(prefabPaths, true, "请选择预制体目录…", "添加预制体路径");
+        EndCard();
+        DrawSaveActions();
+    }
+
+    private void DrawNamespacesPage()
+    {
+        DrawPageTitle("命名空间配置", "生成脚本时自动在文件顶部引用以下命名空间");
+        BeginCard("命名空间列表", "例如 UnityEngine.UI、TMPro 或项目业务命名空间");
+        DrawArray(namespaces, false, "请输入命名空间…", "添加命名空间");
+        EndCard();
+        DrawSaveActions();
+    }
+
+    private static void DrawArray(SerializedProperty array, bool folderPicker, string placeholder, string addLabel)
+    {
+        int removeIndex = -1;
+        for (int i = 0; i < array.arraySize; i++)
+        {
+            SerializedProperty element = array.GetArrayElementAtIndex(i);
+            Rect row = GUILayoutUtility.GetRect(0, 42, GUILayout.ExpandWidth(true));
+            GUI.Label(new Rect(row.x, row.y, 28, 34), $"{i + 1:D2}",
+                new GUIStyle(ZMUIEditorTheme.CodeCell) { alignment = TextAnchor.MiddleCenter });
+
+            float buttonsWidth = folderPicker ? 84 : 42;
+            Rect field = new Rect(row.x + 34, row.y, row.width - 34 - buttonsWidth, 34);
+            element.stringValue = ZMUIEditorTheme.TextField(field, element.stringValue, placeholder);
+            float x = field.xMax + 7;
+            if (folderPicker)
+            {
+                if (GUI.Button(new Rect(x, row.y, 34, 34), EditorGUIUtility.IconContent("Folder Icon"), ZMUIEditorTheme.IconButton))
+                {
+                    string selected = EditorUtility.OpenFolderPanel("选择目录", ToAbsolute(element.stringValue), string.Empty);
+                    if (!string.IsNullOrEmpty(selected)) element.stringValue = ToProjectPath(selected);
                     GUI.FocusControl(null);
                 }
+                x += 41;
             }
-
-            if (GUILayout.Button("✕", mStyleBtnFlat, GUILayout.Width(24), GUILayout.Height(20)))
-                deleteIndex = i;
-
-            // EndHorizontal 必须在 break/return 之前调用，保证 Begin/End 配对
-            EditorGUILayout.EndHorizontal();
-            GUILayout.Space(3);
+            if (GUI.Button(new Rect(x, row.y, 34, 34), "×", ZMUIEditorTheme.DeleteButton))
+                removeIndex = i;
         }
 
-        // 循环结束后统一执行删除
-        if (deleteIndex >= 0)
-            arr.DeleteArrayElementAtIndex(deleteIndex);
-
+        if (removeIndex >= 0) array.DeleteArrayElementAtIndex(removeIndex);
         GUILayout.Space(4);
-        if (GUILayout.Button($"＋  {addLabel}", mStyleBtnFlat, GUILayout.Height(26)))
+        if (GUILayout.Button("+  " + addLabel, ZMUIEditorTheme.SecondaryButton, GUILayout.Height(38)))
         {
-            arr.InsertArrayElementAtIndex(arr.arraySize);
-            arr.GetArrayElementAtIndex(arr.arraySize - 1).stringValue = "";
+            array.InsertArrayElementAtIndex(array.arraySize);
+            array.GetArrayElementAtIndex(array.arraySize - 1).stringValue = string.Empty;
         }
     }
 
-    // ── Utils ─────────────────────────────────────────────────────────────────
-
-    private static string ToRelative(string abs)
+    private void DrawSaveActions(bool showReset = false)
     {
-        return abs.StartsWith(Application.dataPath)
-            ? "Assets" + abs.Substring(Application.dataPath.Length)
-            : abs;
+        GUILayout.Space(4);
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            GUILayout.FlexibleSpace();
+            if (showReset && GUILayout.Button("恢复默认", ZMUIEditorTheme.SecondaryButton, GUILayout.Width(140), GUILayout.Height(38)))
+                ResetMappings();
+            if (showReset) GUILayout.Space(10);
+            if (GUILayout.Button("保存配置", ZMUIEditorTheme.PrimaryButton, GUILayout.Width(160), GUILayout.Height(38)))
+                SaveSetting(true);
+        }
     }
 
-    private static Texture2D Tex(Color c)
+    private void EnsureDefaultMappings()
     {
-        var t = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-        t.SetPixel(0, 0, c);
-        t.Apply();
-        return t;
+        if (componentMappings.arraySize > 0) return;
+        foreach (ComponentMapping mapping in GeneratorConfig.DefaultMappings)
+        {
+            componentMappings.InsertArrayElementAtIndex(componentMappings.arraySize);
+            SerializedProperty entry = componentMappings.GetArrayElementAtIndex(componentMappings.arraySize - 1);
+            entry.FindPropertyRelative("Key").stringValue = mapping.Key;
+            entry.FindPropertyRelative("ComponentType").stringValue = mapping.ComponentType;
+        }
     }
 
-    private static void DestroyTex(ref Texture2D t)
+    private void ResetMappings()
     {
-        if (t != null) { DestroyImmediate(t); t = null; }
+        componentMappings.ClearArray();
+        EnsureDefaultMappings();
+        GUI.FocusControl(null);
+    }
+
+    private void SaveSetting(bool feedback)
+    {
+        if (setting == null || serializedSetting == null) return;
+        serializedSetting.ApplyModifiedProperties();
+        setting.Save();
+        if (!feedback) return;
+        savedFeedbackUntil = EditorApplication.timeSinceStartup + 1.5;
+        ShowNotification(new GUIContent("ZMUI 配置已保存"));
+        Repaint();
+    }
+
+    private static string ToAbsolute(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return Application.dataPath;
+        if (System.IO.Path.IsPathRooted(path)) return path;
+        string projectRoot = System.IO.Directory.GetParent(Application.dataPath)?.FullName ?? Application.dataPath;
+        return System.IO.Path.GetFullPath(System.IO.Path.Combine(projectRoot, path));
+    }
+
+    private static string ToProjectPath(string absolute)
+    {
+        string normalized = absolute.Replace('\\', '/');
+        string dataPath = Application.dataPath.Replace('\\', '/');
+        return normalized.StartsWith(dataPath, StringComparison.OrdinalIgnoreCase)
+            ? "Assets" + normalized.Substring(dataPath.Length)
+            : normalized;
     }
 }

@@ -58,7 +58,8 @@ public class GeneratorBindComponentTool : Editor
         string csContnet = GenerateScript(obj.name);
         Debug.Log("CsConent:\n" + csContnet);
         string scriptPath = UISetting.Instance.BindComponentGeneratorPath + "/" + obj.name + "DataComponent.cs";
-        ScriptDisplayWindow.ShowWindow(csContnet, scriptPath);
+        ScriptDisplayWindow.ShowWindow(csContnet, scriptPath,
+            generationPathPreferenceKey: "BindDataGeneratorClassPath");
         EditorPrefs.SetString("BindDataGeneratorClassPath", scriptPath);
     }
  
@@ -86,8 +87,11 @@ public class GeneratorBindComponentTool : Editor
             sb.AppendLine($"namespace {nameSpaceName}");
             sb.AppendLine("{");
         }
-        sb.AppendLine($"\tpublic class {name + "Data" + "Component:MonoBehaviour"}");
-        sb.AppendLine("\t{");
+        const string classIndent = "    ";
+        const string memberIndent = "        ";
+        const string bodyIndent = "            ";
+        sb.AppendLine($"{classIndent}public class {name}DataComponent : MonoBehaviour");
+        sb.AppendLine($"{classIndent}{{");
 
         //根据字段数据列表 声明字段
         foreach (var item in objDataList)
@@ -97,23 +101,24 @@ public class GeneratorBindComponentTool : Editor
 
             if (item.dataList != null && item.dataList.Count > 0)
             {
-                sb.AppendLine($"\t\tpublic   {item.fieldType}[]    {item.fieldName}{item.fieldType}Array;\n");
+                sb.AppendLine($"{memberIndent}public {item.fieldType}[] {item.fieldName}{item.fieldType}Array;");
             }
             else
             {
-                sb.AppendLine("\t\tpublic   " + item.fieldType + "  " + item.fieldName + item.fieldType + ";\n");
+                sb.AppendLine($"{memberIndent}public {item.fieldType} {item.fieldName}{item.fieldType};");
             }
+            sb.AppendLine();
 
             // if (isTMP) sb.AppendLine("#endif");
         }
 
         //声明初始化组件接口
-        sb.AppendLine("\t\tpublic  void InitComponent(WindowBase target)");
-        sb.AppendLine("\t\t{");
+        sb.AppendLine($"{memberIndent}public void InitComponent(WindowBase target)");
+        sb.AppendLine($"{memberIndent}{{");
 
-        sb.AppendLine("\t\t     //组件事件绑定");
+        sb.AppendLine($"{bodyIndent}// 组件事件绑定");
         //得到逻辑类 WindowBase => LoginWindow
-        sb.AppendLine($"\t\t     {name} mWindow=({name})target;");
+        sb.AppendLine($"{bodyIndent}{name} mWindow = ({name})target;");
 
         //生成UI事件绑定代码
         foreach (var item in objDataList)
@@ -124,26 +129,26 @@ public class GeneratorBindComponentTool : Editor
             if (type.Contains("Button"))
             {
                 suffix = "Click";
-                sb.AppendLine($"\t\t     target.AddButtonClickListener({methodName}{type},mWindow.On{methodName}Button{suffix});");
+                sb.AppendLine($"{bodyIndent}target.AddButtonClickListener({methodName}{type}, mWindow.On{methodName}Button{suffix});");
             }
             if (type == "TMP_InputField")
             {
                 // sb.AppendLine("#if ZM_TMP_PRESENT");
-                sb.AppendLine($"\t\t     target.AddTMPInputFieldListener({methodName}{type},mWindow.On{methodName}InputChange,mWindow.On{methodName}InputEnd);");
+                sb.AppendLine($"{bodyIndent}target.AddTMPInputFieldListener({methodName}{type}, mWindow.On{methodName}InputChange, mWindow.On{methodName}InputEnd);");
                 // sb.AppendLine("#endif");
             }
             else if (type == "InputField")
             {
-                sb.AppendLine($"\t\t     target.AddInputFieldListener({methodName}{type},mWindow.On{methodName}InputChange,mWindow.On{methodName}InputEnd);");
+                sb.AppendLine($"{bodyIndent}target.AddInputFieldListener({methodName}{type}, mWindow.On{methodName}InputChange, mWindow.On{methodName}InputEnd);");
             }
             if (type.Contains("Toggle"))
             {
                 suffix = "Change";
-                sb.AppendLine($"\t\t     target.AddToggleClickListener({methodName}{type},mWindow.On{methodName}Toggle{suffix});");
+                sb.AppendLine($"{bodyIndent}target.AddToggleClickListener({methodName}{type}, mWindow.On{methodName}Toggle{suffix});");
             }
         }
-        sb.AppendLine("\t\t}");
-        sb.AppendLine("\t}");
+        sb.AppendLine($"{memberIndent}}}");
+        sb.AppendLine($"{classIndent}}}");
         if (!string.IsNullOrEmpty(nameSpaceName))
         {
             sb.AppendLine("}");

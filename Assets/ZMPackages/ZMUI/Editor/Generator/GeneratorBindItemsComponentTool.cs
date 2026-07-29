@@ -63,7 +63,8 @@ public class GeneratorBindItemsComponentTool : Editor
 
         Debug.Log("Script Content:\n" + scriptContent);
 
-        ScriptDisplayWindow.ShowWindow(scriptContent, scriptFilePath, _mMethodDic, objDataList);
+        ScriptDisplayWindow.ShowWindow(scriptContent, scriptFilePath, _mMethodDic, objDataList,
+            "itemGeneratorClassPath");
 
         EditorPrefs.SetString("itemGeneratorClassPath", scriptFilePath);
     }
