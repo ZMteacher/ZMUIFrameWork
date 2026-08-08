@@ -1,0 +1,3 @@
+# FastMCP 在 mcp 2.x 中已移除，锁定 1.x 稳定版
+mcp>=1.29,<2.0
+pyyaml>=6.0
